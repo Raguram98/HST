@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AUDIOPULSE  /  LIBRARY"
+            android:textAllCaps="true"
+            android:textColor="@color/md_theme_primary"
+            android:textSize="11sp"
+            android:letterSpacing="0.14"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Your sessions"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="30sp"
+            android:letterSpacing="-0.025"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Every connection, all in one place."
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/sessions_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="14dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="18dp" />
+
+        <LinearLayout
+            android:id="@+id/empty_state_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/md_theme_background"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:background="@drawable/bg_empty_icon"
+                android:contentDescription="Headphones"
+                android:padding="21dp"
+                android:src="@drawable/ic_headphones"
+                app:tint="@color/md_theme_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Nothing playing yet"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Connect your headphones and your listening sessions will show up here."
+                android:textAlignment="center"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp"
+                android:lineSpacingExtra="3dp" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

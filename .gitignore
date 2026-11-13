@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+*.apk
+*.aar
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+local.properties
+app/build/
+
+# Android specific
+*.keystore
+*.jks
+signing.properties
+captures/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.vs/
+.classpath
+.project
+.settings/
+
+# Environment
+.env
+.env.local
+
+# Editor
+*.swp
+*.swo
+*.bak

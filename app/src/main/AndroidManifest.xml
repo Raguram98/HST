@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.CHANGE_AUDIO_ROUTING" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher_foreground"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HeadphoneTracker">
+
+        <activity
+            android:name="com.starboy.audiopulse.ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Runs independently of MainActivity -->
+        <receiver
+            android:name="com.starboy.audiopulse.service.HeadphoneReceiver"
+            android:exported="true">
+
+            <intent-filter>
+
+                <!-- Bluetooth A2DP -->
+                <action android:name="android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED" />
+
+                <!-- Bluetooth Headset -->
+                <action android:name="android.bluetooth.headset.profile.action.CONNECTION_STATE_CHANGED" />
+
+            </intent-filter>
+
+        </receiver>
+
+    </application>
+
+</manifest>
