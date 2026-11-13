@@ -9,12 +9,16 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.content.Intent
+import android.content.IntentFilter
+import com.starboy.audiopulse.service.HeadphoneReceiver
 
 /**
  * Main activity with bottom navigation between List and Dashboard views
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var bottomNav: BottomNavigationView
+    private val headphoneReceiver = HeadphoneReceiver()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +55,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    override fun onStart() {
+    super.onStart()
+
+    val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
+
+    ContextCompat.registerReceiver(
+        this,
+        headphoneReceiver,
+        filter,
+        ContextCompat.RECEIVER_EXPORTED
+    )
+}
+
+override fun onStop() {
+    try {
+        unregisterReceiver(headphoneReceiver)
+    } catch (e: IllegalArgumentException) {
+        e.printStackTrace()
+    }
+
+    super.onStop()
+}
 
     private fun checkBluetoothPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
