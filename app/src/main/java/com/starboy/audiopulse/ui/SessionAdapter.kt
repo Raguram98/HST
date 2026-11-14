@@ -190,8 +190,9 @@ class SessionAdapter(
             binding.liveBadge.visibility = if (session.isActive) View.VISIBLE else View.GONE
             binding.liveBadge.text = if (session.isActive) "● LIVE" else ""
             binding.startTimeText.text = formatTime(session.connectedTime)
-            binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: "Still connected"
-            binding.connectionTypeText.text = if (isBluetooth) "Bluetooth" else "Wired"
+            binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: ""
+            binding.endTimeRow.visibility = if (session.isActive) View.GONE else View.VISIBLE
+            binding.connectionTypeText = if (isBluetooth) "Bluetooth" else "Wired"
             binding.batteryRow.visibility = if (session.isActive && isBluetooth) View.VISIBLE else View.GONE
             binding.batteryText.text = "Unavailable"
 
