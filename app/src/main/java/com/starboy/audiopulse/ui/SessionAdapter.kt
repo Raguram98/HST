@@ -181,6 +181,8 @@ class SessionAdapter(
             binding.startTimeText.text = formatTime(session.connectedTime)
             binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: "Still connected"
             binding.connectionTypeText.text = if (isBluetooth) "Bluetooth" else "Wired"
+            binding.batteryRow.visibility = if (session.isActive && isBluetooth) View.VISIBLE else View.GONE
+            binding.batteryText.text = "Unavailable"
 
             binding.root.setOnClickListener { onToggle() }
             binding.expandIcon.setOnClickListener { onToggle() }
