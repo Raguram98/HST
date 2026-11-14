@@ -1,6 +1,5 @@
 package com.starboy.audiopulse.ui
 
-import android.content.res.ColorStateList
 import android.os.Handler
 import android.os.Looper
 import android.transition.AutoTransition
@@ -40,7 +39,6 @@ class SessionAdapter(
 
     private val rows = mutableListOf<Row>()
     private val expandedSessionIds = mutableSetOf<Long>()
-    private val handler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val TYPE_DATE = 0
@@ -100,9 +98,13 @@ class SessionAdapter(
                 row.value,
                 expandedSessionIds.contains(row.value.id),
                 onToggle = {
-                    if (!expandedSessionIds.add(row.value.id)) expandedSessionIds.remove(row.value.id)
-                    val currentPosition = holder.bindingAdapterPosition
-                    if (currentPosition != RecyclerView.NO_POSITION) notifyItemChanged(currentPosition)
+                    val nowExpanded = if (expandedSessionIds.add(row.value.id)) {
+                        true
+                    } else {
+                        expandedSessionIds.remove(row.value.id)
+                        false
+                    }
+                    (holder as SessionViewHolder).setExpanded(nowExpanded)
                 },
                 onActions = { anchor -> showActions(anchor, row.value) }
             )
@@ -171,7 +173,6 @@ class SessionAdapter(
         ) {
             stopUpdates()
             currentSession = session
-            val context = itemView.context
             val isBluetooth = session.connectionType == ConnectionType.BLUETOOTH
 
             binding.deviceNameText.text = session.deviceName
@@ -229,8 +230,6 @@ class SessionAdapter(
         private fun formatTime(timestamp: Long): String =
             SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(timestamp))
 
-        private fun formatDate(timestamp: Long): String =
-            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))
     }
 
     override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
