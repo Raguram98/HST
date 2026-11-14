@@ -1,6 +1,7 @@
 package com.starboy.audiopulse.ui
 
-import android.os.Handler
+import android.content.Intent
+import android.provider.Settings
 import android.os.Looper
 import android.transition.AutoTransition
 import android.transition.TransitionManager
@@ -113,10 +114,18 @@ class SessionAdapter(
 
     private fun showActions(anchor: View, session: HeadphoneSession) {
         PopupMenu(anchor.context, anchor).apply {
+            if (session.isActive && session.connectionType == ConnectionType.BLUETOOTH) {
+                menu.add("Disconnect in Bluetooth settings")
+            }
             menu.add("Rename device")
             menu.add("Delete session")
             setOnMenuItemClickListener { item ->
                 when (item.title.toString()) {
+                    "Disconnect in Bluetooth settings" -> {
+                        anchor.context.startActivity(
+                            Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
                     "Rename device" -> showRenameDialog(anchor, session)
                     "Delete session" -> MaterialAlertDialogBuilder(anchor.context)
                         .setTitle("Delete session?")
