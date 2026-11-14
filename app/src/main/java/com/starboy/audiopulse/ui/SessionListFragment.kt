@@ -75,6 +75,7 @@ class SessionListFragment : Fragment() {
         val hours = totalMinutes / 60
         val minutes = totalMinutes % 60
         val duration = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
-        return "${sessions.size} sessions · ${duration} today"
+        val countLabel = if (todaySessions.size == 1) "session" else "sessions"
+        return "${todaySessions.size} ${countLabel} · ${duration} today"
     }
 }
