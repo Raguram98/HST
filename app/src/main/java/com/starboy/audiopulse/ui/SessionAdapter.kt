@@ -212,7 +212,8 @@ class SessionAdapter(
                 AutoTransition().apply { duration = 220 }
             )
             binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
-            binding.expandIcon.text = if (expanded) "Collapse details" else "Expand details"
+            binding.actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
+            binding.expandIcon.text = ""
             binding.expandIcon.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 0,
                 0,
