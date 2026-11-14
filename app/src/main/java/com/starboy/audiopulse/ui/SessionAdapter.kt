@@ -219,6 +219,7 @@ class SessionAdapter(
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
+            stopUpdates()
             updateRunnable = object : Runnable {
                 override fun run() {
                     updateDuration(session)
