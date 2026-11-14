@@ -175,16 +175,11 @@ class SessionAdapter(
 
             binding.deviceNameText.text = session.deviceName
             binding.deviceIcon.text = if (isBluetooth) "🎧" else "🎙️"
-            binding.connectionTypeBadge.visibility = View.GONE
             binding.liveBadge.visibility = if (session.isActive) View.VISIBLE else View.GONE
             binding.liveBadge.text = if (session.isActive) "● LIVE" else ""
-            binding.timestampText.text = formatDate(session.connectedTime)
             binding.startTimeText.text = formatTime(session.connectedTime)
             binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: "Still connected"
-            binding.sessionDateText.text = formatDate(session.connectedTime)
-            binding.connectionNameText.text = session.deviceName
             binding.connectionTypeText.text = if (isBluetooth) "Bluetooth" else "Wired"
-            binding.sessionStatusText.text = if (session.isActive) "Live" else "Completed"
 
             binding.root.setOnClickListener { onToggle() }
             binding.expandIcon.setOnClickListener { onToggle() }
@@ -207,7 +202,6 @@ class SessionAdapter(
         private fun updateDuration(session: HeadphoneSession) {
             val duration = session.getDurationString()
             binding.durationText.text = duration
-            binding.detailDurationText.text = duration
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
