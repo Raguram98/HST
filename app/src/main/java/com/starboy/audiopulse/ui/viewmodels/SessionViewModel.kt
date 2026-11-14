@@ -50,6 +50,18 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun renameSession(session: HeadphoneSession, newName: String) {
+        viewModelScope.launch {
+            repository.updateSession(session.copy(deviceName = newName))
+        }
+    }
+
+    fun deleteSession(session: HeadphoneSession) {
+        viewModelScope.launch {
+            repository.deleteSession(session)
+        }
+    }
+
     fun getAllSessions(onResult: (List<HeadphoneSession>) -> Unit) {
         viewModelScope.launch {
             val sessions = repository.getAllSessionsOnce()
