@@ -207,10 +207,15 @@ class SessionAdapter(
         }
 
         fun setExpanded(expanded: Boolean, animate: Boolean = true) {
-            if (animate) TransitionManager.beginDelayedTransition(
-                binding.root,
-                AutoTransition().apply { duration = 220 }
-            )
+            if (animate) {
+                // Animate the RecyclerView as a whole so neighbouring cards
+                // move smoothly while this card expands or collapses.
+                val transitionRoot = binding.root.parent as? ViewGroup ?: binding.root
+                TransitionManager.beginDelayedTransition(
+                    transitionRoot,
+                    AutoTransition().apply { duration = 220 }
+                )
+            }
             binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.expandIcon.text = ""
