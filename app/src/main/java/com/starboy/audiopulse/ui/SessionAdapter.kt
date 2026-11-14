@@ -186,7 +186,9 @@ class SessionAdapter(
             val isBluetooth = session.connectionType == ConnectionType.BLUETOOTH
 
             binding.deviceNameText.text = session.deviceName
-            binding.deviceIcon.text = if (isBluetooth) "🎧" else "🎙️"
+            binding.deviceIcon.setImageResource(
+                if (isBluetooth) R.drawable.ic_bluetooth else R.drawable.ic_audio_jack
+            )
             binding.liveBadge.visibility = if (session.isActive) View.VISIBLE else View.GONE
             binding.liveBadge.text = if (session.isActive) "● LIVE" else ""
             binding.startTimeText.text = formatTime(session.connectedTime)
