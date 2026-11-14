@@ -101,7 +101,8 @@ class SessionAdapter(
                 expandedSessionIds.contains(row.value.id),
                 onToggle = {
                     if (!expandedSessionIds.add(row.value.id)) expandedSessionIds.remove(row.value.id)
-                    notifyItemChanged(position)
+                    val currentPosition = holder.bindingAdapterPosition
+                    if (currentPosition != RecyclerView.NO_POSITION) notifyItemChanged(currentPosition)
                 },
                 onActions = { anchor -> showActions(anchor, row.value) }
             )
@@ -219,6 +220,10 @@ class SessionAdapter(
             updateRunnable = null
         }
 
+        fun resumeUpdates() {
+            currentSession?.takeIf { it.isActive }?.let(::startDurationUpdates)
+        }
+
         private fun formatTime(timestamp: Long): String =
             SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(timestamp))
 
@@ -233,8 +238,6 @@ class SessionAdapter(
 
     override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
         super.onViewAttachedToWindow(holder)
-        if (holder is SessionViewHolder) holder.itemView.post {
-            // Rebinding restarts the timer; detached holders are rebound when recycled.
-        }
+        if (holder is SessionViewHolder) holder.resumeUpdates()
     }
 }
