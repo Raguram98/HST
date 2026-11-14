@@ -32,14 +32,15 @@
             android:paddingEnd="10dp"
             android:paddingBottom="15dp">
 
-            <TextView
+            <ImageView
                 android:id="@+id/device_icon"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="@drawable/bg_icon_circle"
-                android:gravity="center"
-                android:text="🎧"
-                android:textSize="22sp" />
+                android:contentDescription="Connection type"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                app:tint="?attr/colorOnSurface" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -86,16 +87,16 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <TextView
+            <ImageButton
                 android:id="@+id/actions_button"
                 android:layout_width="40dp"
                 android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Session actions"
                 android:focusable="true"
-                android:gravity="center"
-                android:text="⋮"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="25sp" />
+                android:padding="10dp"
+                android:src="@drawable/ic_more_vertical"
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <TextView
                 android:id="@+id/expand_icon"
@@ -105,7 +106,10 @@
                 android:minWidth="94dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="4dp"
-                android:text="Expand details  ⌄"
+                android:drawableEnd="@drawable/ic_chevron_down"
+                android:drawablePadding="4dp"
+                android:drawableTint="?attr/colorPrimary"
+                android:text="Expand details"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
