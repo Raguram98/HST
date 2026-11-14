@@ -210,8 +210,15 @@ class SessionAdapter(
                 AutoTransition().apply { duration = 220 }
             )
             binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
-            binding.expandIcon.text = if (expanded) "Collapse details  ⌃" else "Expand details  ⌄"
-            binding.expandIcon.contentDescription = if (expanded) "Collapse session details" else "Expand session details"
+            binding.expandIcon.text = if (expanded) "Collapse details" else "Expand details"
+            binding.expandIcon.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                0,
+                0,
+                if (expanded) R.drawable.ic_chevron_up else R.drawable.ic_chevron_down,
+                0
+            )
+            binding.expandIcon.contentDescription =
+                if (expanded) "Collapse session details" else "Expand session details"
         }
 
         private fun updateDuration(session: HeadphoneSession) {
