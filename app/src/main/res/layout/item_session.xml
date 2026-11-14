@@ -91,7 +91,7 @@
                 android:id="@+id/actions_button"
                 android:layout_width="40dp"
                 android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Session actions"
                 android:focusable="true"
                 android:padding="10dp"
