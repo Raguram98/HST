@@ -1,6 +1,7 @@
 package com.starboy.audiopulse.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -23,6 +24,9 @@ interface SessionDao {
      */
     @Update
     suspend fun updateSession(session: HeadphoneSession)
+
+    @Delete
+    suspend fun deleteSession(session: HeadphoneSession)
 
     /**
      * Get all sessions ordered by most recent first
