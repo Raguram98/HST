@@ -19,6 +19,10 @@ class SessionRepository(private val sessionDao: SessionDao) {
         sessionDao.updateSession(session)
     }
 
+    suspend fun deleteSession(session: HeadphoneSession) {
+        sessionDao.deleteSession(session)
+    }
+
     suspend fun getAllSessionsOnce(): List<HeadphoneSession> {
         return sessionDao.getAllSessionsOnce()
     }
