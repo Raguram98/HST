@@ -6,6 +6,7 @@ import android.os.Looper
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -22,13 +23,24 @@ import java.util.Locale
 /** Displays recorded headphone sessions with expandable details and live duration updates. */
 class SessionAdapter : ListAdapter<HeadphoneSession, SessionAdapter.SessionViewHolder>(SessionDiffCallback()) {
 
+    // Store expanded IDs in the adapter so expansion survives RecyclerView recycling.
+    private val expandedSessionIds = mutableSetOf<Long>()
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SessionViewHolder {
         val binding = ItemSessionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return SessionViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: SessionViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val session = getItem(position)
+        holder.bind(session, expandedSessionIds.contains(session.id)) {
+            if (!expandedSessionIds.add(session.id)) {
+                expandedSessionIds.remove(session.id)
+                holder.setExpanded(false)
+            } else {
+                holder.setExpanded(true)
+            }
+        }
     }
 
     class SessionViewHolder(
@@ -38,9 +50,8 @@ class SessionAdapter : ListAdapter<HeadphoneSession, SessionAdapter.SessionViewH
         private val handler = Handler(Looper.getMainLooper())
         private var updateRunnable: Runnable? = null
         private var boundSession: HeadphoneSession? = null
-        private var isExpanded = false
 
-        fun bind(session: HeadphoneSession) {
+        fun bind(session: HeadphoneSession, expanded: Boolean, onToggle: () -> Unit) {
             boundSession = session
             val context = itemView.context
             val isBluetooth = session.connectionType == ConnectionType.BLUETOOTH
@@ -72,7 +83,7 @@ class SessionAdapter : ListAdapter<HeadphoneSession, SessionAdapter.SessionViewH
                 isCheckable = false
             }
 
-            binding.liveBadge.visibility = if (session.isActive) android.view.View.VISIBLE else android.view.View.GONE
+            binding.liveBadge.visibility = if (session.isActive) View.VISIBLE else View.GONE
             binding.timestampText.text = formatDate(session.connectedTime)
             binding.startTimeText.text = formatTime(session.connectedTime)
             binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: "Still connected"
@@ -81,26 +92,21 @@ class SessionAdapter : ListAdapter<HeadphoneSession, SessionAdapter.SessionViewH
             binding.connectionTypeText.text = if (isBluetooth) "Bluetooth" else "Wired"
             binding.sessionStatusText.text = if (session.isActive) "Active" else "Completed"
 
-            // Keep each row's expanded state when RecyclerView rebinds it.
-            binding.detailsContainer.visibility = if (isExpanded) android.view.View.VISIBLE else android.view.View.GONE
-            binding.expandIcon.text = if (isExpanded) "⌃" else "⌄"
+            setExpanded(expanded, animate = false)
             updateDuration(session)
-
-            binding.root.setOnClickListener {
-                toggleExpanded()
-            }
-
+            binding.root.setOnClickListener { onToggle() }
             startDurationUpdates(session)
         }
 
-        private fun toggleExpanded() {
-            isExpanded = !isExpanded
-            TransitionManager.beginDelayedTransition(binding.root, AutoTransition().apply {
-                duration = 220
-            })
-            binding.detailsContainer.visibility =
-                if (isExpanded) android.view.View.VISIBLE else android.view.View.GONE
-            binding.expandIcon.text = if (isExpanded) "⌃" else "⌄"
+        fun setExpanded(expanded: Boolean, animate: Boolean = true) {
+            if (animate) {
+                TransitionManager.beginDelayedTransition(
+                    binding.root,
+                    AutoTransition().apply { duration = 220 }
+                )
+            }
+            binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
+            binding.expandIcon.text = if (expanded) "⌃" else "⌄"
         }
 
         private fun updateDuration(session: HeadphoneSession) {
@@ -114,9 +120,7 @@ class SessionAdapter : ListAdapter<HeadphoneSession, SessionAdapter.SessionViewH
             updateRunnable = object : Runnable {
                 override fun run() {
                     updateDuration(session)
-                    if (session.isActive) {
-                        handler.postDelayed(this, 1000)
-                    }
+                    if (session.isActive) handler.postDelayed(this, 1000)
                 }
             }
             updateRunnable?.let(handler::post)
