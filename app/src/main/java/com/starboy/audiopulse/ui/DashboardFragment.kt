@@ -1,20 +1,24 @@
 package com.starboy.audiopulse.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.starboy.audiopulse.data.ConnectionType
+import com.starboy.audiopulse.data.DiagnosticLog
 import com.starboy.audiopulse.databinding.FragmentDashboardBinding
 import com.starboy.audiopulse.ui.viewmodels.SessionViewModel
-import com.starboy.audiopulse.data.ConnectionType
 
 /**
- * Fragment that displays statistics and analytics dashboard
- * Shows TWS vs Wired usage breakdown and key metrics
+ * Fragment that displays statistics, analytics and Bluetooth diagnostics.
  */
 class DashboardFragment : Fragment() {
 
@@ -24,7 +28,6 @@ class DashboardFragment : Fragment() {
     private val updateRunnable = object : Runnable {
         override fun run() {
             loadStatistics()
-            // Update every second
             handler.postDelayed(this, 1000)
         }
     }
@@ -42,41 +45,62 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         loadStatistics()
+        refreshDiagnostics()
+        binding.refreshDiagnosticsButton.setOnClickListener {
+            refreshDiagnostics()
+        }
+        binding.clearDiagnosticsButton.setOnClickListener {
+            DiagnosticLog.clear(requireContext())
+            refreshDiagnostics()
+        }
         handler.post(updateRunnable)
     }
 
+    private fun refreshDiagnostics() {
+        val hasBluetoothPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+
+        binding.bluetoothPermissionStatusText.text = if (hasBluetoothPermission) {
+            "BLUETOOTH_CONNECT: Granted"
+        } else {
+            "BLUETOOTH_CONNECT: NOT GRANTED"
+        }
+
+        val logs = DiagnosticLog.getLogs(requireContext())
+        binding.diagnosticLogText.text = if (logs.isBlank()) {
+            "No diagnostic events recorded yet. Connect or disconnect your Bluetooth headphones, then refresh."
+        } else {
+            logs
+        }
+    }
+
     private fun loadStatistics() {
-        // Load total duration
         viewModel.getTotalDuration { totalMs ->
             binding.totalDurationText.text = viewModel.formatDuration(totalMs)
         }
 
-        // Load session count
         viewModel.getSessionCount { count ->
             binding.sessionCountText.text = count.toString()
         }
 
-        // Load today's duration
         viewModel.getTodaysSessions { todaysSessions ->
             val totalMs = todaysSessions.sumOf { it.getDurationMs() }
             binding.todayDurationText.text = viewModel.formatDuration(totalMs)
         }
 
-        // Load device type breakdown
         viewModel.getAllSessions { sessions ->
             updateDeviceTypeStats(sessions)
         }
 
-        // Load most used device
         viewModel.getMostUsedDevice { device ->
             if (device != null) {
                 binding.mostUsedDeviceText.text = device
-
-                // Find the device and get its connection type
                 viewModel.getAllSessions { sessions ->
                     val deviceSession = sessions.find { it.deviceName == device }
                     if (deviceSession != null) {
-                        val deviceType = if (deviceSession.connectionType == ConnectionType.BLUETOOTH) "🎧 TWS" else "🎙️ Wired"
                         val deviceTypeLabel = if (deviceSession.connectionType == ConnectionType.BLUETOOTH) "Wireless" else "Wired"
                         binding.favoriteDeviceIcon.text = if (deviceSession.connectionType == ConnectionType.BLUETOOTH) "🎧" else "🎙️"
                         binding.favoriteDeviceType.text = deviceTypeLabel
@@ -91,16 +115,13 @@ class DashboardFragment : Fragment() {
     }
 
     private fun updateDeviceTypeStats(sessions: List<com.starboy.audiopulse.data.HeadphoneSession>) {
-        // Split sessions by connection type
         val bluetoothSessions = sessions.filter { it.connectionType == ConnectionType.BLUETOOTH }
         val wiredSessions = sessions.filter { it.connectionType == ConnectionType.WIRED }
 
-        // Calculate totals for Bluetooth/TWS
         val bluetoothTotalMs = bluetoothSessions.sumOf { it.getDurationMs() }
         binding.bluetoothDurationText.text = viewModel.formatDuration(bluetoothTotalMs)
         binding.bluetoothCountText.text = "${bluetoothSessions.size} session${if (bluetoothSessions.size != 1) "s" else ""}"
 
-        // Calculate totals for Wired
         val wiredTotalMs = wiredSessions.sumOf { it.getDurationMs() }
         binding.wiredDurationText.text = viewModel.formatDuration(wiredTotalMs)
         binding.wiredCountText.text = "${wiredSessions.size} session${if (wiredSessions.size != 1) "s" else ""}"
