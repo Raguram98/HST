@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/expandable-session-cards
+      - feature/phase-1-polish
   workflow_dispatch:
 
 jobs:
