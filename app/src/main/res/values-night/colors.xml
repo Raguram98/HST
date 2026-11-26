@@ -1,46 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- AudioPulse dark palette -->
-    <color name="md_theme_primary">#B8AEFF</color>
-    <color name="md_theme_on_primary">#24166E</color>
-    <color name="md_theme_primary_container">#3B327A</color>
-    <color name="md_theme_on_primary_container">#E9E5FF</color>
+    <!-- AudioPulse mint and teal palette -->
+    <color name="md_theme_primary">#A8E6CF</color>
+    <color name="md_theme_on_primary">#06251B</color>
+    <color name="md_theme_primary_container">#1B4F40</color>
+    <color name="md_theme_on_primary_container">#DDF7EA</color>
 
-    <color name="md_theme_secondary">#91D7C9</color>
-    <color name="md_theme_on_secondary">#063B34</color>
-    <color name="md_theme_secondary_container">#174E46</color>
-    <color name="md_theme_on_secondary_container">#D8F3EC</color>
+    <color name="md_theme_secondary">#3CB28E</color>
+    <color name="md_theme_on_secondary">#041F17</color>
+    <color name="md_theme_secondary_container">#173D32</color>
+    <color name="md_theme_on_secondary_container">#BDEEDB</color>
 
-    <color name="md_theme_tertiary">#F2B18A</color>
-    <color name="md_theme_on_tertiary">#4B2110</color>
-    <color name="md_theme_tertiary_container">#713E25</color>
-    <color name="md_theme_on_tertiary_container">#FFE5D5</color>
+    <color name="md_theme_tertiary">#78DCC0</color>
+    <color name="md_theme_on_tertiary">#06251B</color>
+    <color name="md_theme_tertiary_container">#245B49</color>
+    <color name="md_theme_on_tertiary_container">#D1F5E7</color>
 
-    <color name="md_theme_error">#F2B8B5</color>
-    <color name="md_theme_on_error">#601410</color>
-    <color name="md_theme_error_container">#8C1D18</color>
-    <color name="md_theme_on_error_container">#F9DEDC</color>
+    <color name="md_theme_error">#FFB4AB</color>
+    <color name="md_theme_on_error">#690005</color>
+    <color name="md_theme_error_container">#93000A</color>
+    <color name="md_theme_on_error_container">#FFDAD6</color>
 
-    <color name="md_theme_background">#0A0C12</color>
-    <color name="md_theme_on_background">#F0F0F7</color>
-    <color name="md_theme_surface">#141722</color>
-    <color name="md_theme_on_surface">#F0F0F7</color>
-    <color name="md_theme_surface_variant">#202433</color>
-    <color name="md_theme_on_surface_variant">#A7ABBC</color>
-    <color name="md_theme_outline">#292E40</color>
+    <color name="md_theme_background">#050807</color>
+    <color name="md_theme_on_background">#EAF7F0</color>
+    <color name="md_theme_surface">#101714</color>
+    <color name="md_theme_on_surface">#EAF7F0</color>
+    <color name="md_theme_surface_variant">#1B2822</color>
+    <color name="md_theme_on_surface_variant">#A8BDB3</color>
+    <color name="md_theme_outline">#30443A</color>
 
-    <color name="nav_indicator_color">#302A56</color>
-    <color name="hero_text">#FFFFFF</color>
-    <color name="hero_muted">#D7D1FF</color>
-    <color name="hero_divider">#55FFFFFF</color>
-    <color name="badge_wireless_text">#91D7C9</color>
-    <color name="badge_wired_text">#F2B18A</color>
-    <color name="icon_circle_background">#252341</color>
-    <color name="empty_icon_background">#252341</color>
-    <color name="badge_wireless_background">#174E46</color>
-    <color name="badge_wired_background">#713E25</color>
-    <color name="badge_active_background">#174E46</color>
-    <color name="badge_active_text">#A7E9D5</color>
-    <color name="badge_complete_background">#292E40</color>
-    <color name="badge_complete_text">#B0B4C3</color>
+    <color name="nav_indicator_color">#1B4F40</color>
+    <color name="hero_text">#F1FFF8</color>
+    <color name="hero_muted">#C2EBDD</color>
+    <color name="hero_divider">#55A8E6CF</color>
+    <color name="badge_wireless_text">#A8E6CF</color>
+    <color name="badge_wired_text">#3CB28E</color>
+    <color name="icon_circle_background">#173329</color>
+    <color name="empty_icon_background">#173329</color>
+    <color name="badge_wireless_background">#173D32</color>
+    <color name="badge_wired_background">#164638</color>
+    <color name="badge_active_background">#1B4F40</color>
+    <color name="badge_active_text">#CFF7E5</color>
+    <color name="badge_complete_background">#1B2822</color>
+    <color name="badge_complete_text">#A8BDB3</color>
 </resources>
