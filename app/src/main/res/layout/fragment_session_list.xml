@@ -44,11 +44,53 @@
             android:textSize="14sp" />
     </LinearLayout>
 
+    <EditText
+        android:id="@+id/session_search_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="8dp"
+        android:autofillHints="none"
+        android:backgroundTint="?attr/colorPrimary"
+        android:hint="Search device name"
+        android:imeOptions="actionDone"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:singleLine="true"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <Spinner
+            android:id="@+id/connection_filter_spinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="Filter by connection type" />
+
+        <Spinner
+            android:id="@+id/date_filter_spinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="Filter by date" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/sessions_summary_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="10dp"
         android:text="0 sessions · 0 min today"
@@ -91,6 +133,7 @@
                 app:tint="@color/md_theme_primary" />
 
             <TextView
+                android:id="@+id/empty_state_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
@@ -100,6 +143,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/empty_state_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"

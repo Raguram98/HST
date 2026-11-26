@@ -231,7 +231,9 @@ class SessionAdapter(
 
         private fun updateDuration(session: HeadphoneSession) {
             val duration = session.getDurationString()
-            binding.durationText.text = duration
+            val connectionLabel =
+                if (session.connectionType == ConnectionType.BLUETOOTH) "Bluetooth" else "Wired"
+            binding.durationText.text = "$duration · $connectionLabel"
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
