@@ -1,6 +1,9 @@
 package com.starboy.audiopulse.ui
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -48,6 +51,16 @@ class DashboardFragment : Fragment() {
         refreshDiagnostics()
         binding.refreshDiagnosticsButton.setOnClickListener {
             refreshDiagnostics()
+        }
+        binding.copyDiagnosticsButton.setOnClickListener {
+            val logs = DiagnosticLog.getLogs(requireContext())
+            if (logs.isNotBlank()) {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("AudioPulse diagnostics", logs))
+                android.widget.Toast.makeText(requireContext(), "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(requireContext(), "No diagnostics to copy", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
         binding.clearDiagnosticsButton.setOnClickListener {
             DiagnosticLog.clear(requireContext())
@@ -102,14 +115,20 @@ class DashboardFragment : Fragment() {
                     val deviceSession = sessions.find { it.deviceName == device }
                     if (deviceSession != null) {
                         val deviceTypeLabel = if (deviceSession.connectionType == ConnectionType.BLUETOOTH) "Wireless" else "Wired"
-                        binding.favoriteDeviceIcon.text = if (deviceSession.connectionType == ConnectionType.BLUETOOTH) "🎧" else "🎙️"
+                        binding.favoriteDeviceIcon.setImageResource(
+                            if (deviceSession.connectionType == ConnectionType.BLUETOOTH) {
+                                com.starboy.audiopulse.R.drawable.ic_headphones
+                            } else {
+                                com.starboy.audiopulse.R.drawable.ic_audio_jack
+                            }
+                        )
                         binding.favoriteDeviceType.text = deviceTypeLabel
                     }
                 }
             } else {
                 binding.mostUsedDeviceText.text = "N/A"
                 binding.favoriteDeviceType.text = ""
-                binding.favoriteDeviceIcon.text = "❓"
+                binding.favoriteDeviceIcon.setImageResource(com.starboy.audiopulse.R.drawable.ic_headphones)
             }
         }
     }
