@@ -149,7 +149,6 @@ class HeadphoneReceiver : BroadcastReceiver() {
                     isActive = true
                 )
 
-                val insertedId = sessionDao.insertSession(session)
                 Log.d(TAG, "Session started: $deviceName ($connectionType)")
                 DiagnosticLog.record(context, "Session insert successful (ID: $insertedId)")
             } catch (e: Exception) {
@@ -193,13 +192,4 @@ class HeadphoneReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun stateName(state: Int): String {
-        return when (state) {
-            BluetoothProfile.STATE_DISCONNECTED -> "DISCONNECTED"
-            BluetoothProfile.STATE_CONNECTING -> "CONNECTING"
-            BluetoothProfile.STATE_CONNECTED -> "CONNECTED"
-            BluetoothProfile.STATE_DISCONNECTING -> "DISCONNECTING"
-            else -> "UNKNOWN"
-        }
-    }
 }

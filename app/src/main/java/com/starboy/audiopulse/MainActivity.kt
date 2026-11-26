@@ -22,6 +22,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Remove diagnostic history saved by older app versions.
+        getSharedPreferences("audiopulse_diagnostics", MODE_PRIVATE).edit().clear().apply()
         setContentView(R.layout.activity_main)
         checkBluetoothPermissions()
 

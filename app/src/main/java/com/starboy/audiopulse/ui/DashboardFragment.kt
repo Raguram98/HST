@@ -1,28 +1,18 @@
 package com.starboy.audiopulse.ui
 
-import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.starboy.audiopulse.data.ConnectionType
-import com.starboy.audiopulse.data.DiagnosticLog
 import com.starboy.audiopulse.databinding.FragmentDashboardBinding
 import com.starboy.audiopulse.ui.viewmodels.SessionViewModel
 
-/**
- * Fragment that displays statistics, analytics and Bluetooth diagnostics.
- */
+/** Fragment that displays listening statistics and device insights. */
 class DashboardFragment : Fragment() {
 
     private val viewModel: SessionViewModel by viewModels()
@@ -48,46 +38,7 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         loadStatistics()
-        refreshDiagnostics()
-        binding.refreshDiagnosticsButton.setOnClickListener {
-            refreshDiagnostics()
-        }
-        binding.copyDiagnosticsButton.setOnClickListener {
-            val logs = DiagnosticLog.getLogs(requireContext())
-            if (logs.isNotBlank()) {
-                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("AudioPulse diagnostics", logs))
-                android.widget.Toast.makeText(requireContext(), "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
-            } else {
-                android.widget.Toast.makeText(requireContext(), "No diagnostics to copy", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-        binding.clearDiagnosticsButton.setOnClickListener {
-            DiagnosticLog.clear(requireContext())
-            refreshDiagnostics()
-        }
         handler.post(updateRunnable)
-    }
-
-    private fun refreshDiagnostics() {
-        val hasBluetoothPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-
-        binding.bluetoothPermissionStatusText.text = if (hasBluetoothPermission) {
-            "BLUETOOTH_CONNECT: Granted"
-        } else {
-            "BLUETOOTH_CONNECT: NOT GRANTED"
-        }
-
-        val logs = DiagnosticLog.getLogs(requireContext())
-        binding.diagnosticLogText.text = if (logs.isBlank()) {
-            "No diagnostic events recorded yet. Connect or disconnect your Bluetooth headphones, then refresh."
-        } else {
-            logs
-        }
     }
 
     private fun loadStatistics() {
