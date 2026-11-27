@@ -230,8 +230,30 @@ class SessionAdapter(
         }
 
         private fun updateDuration(session: HeadphoneSession) {
-            val duration = session.getDurationString()
-            binding.durationText.text = duration
+            val connectionType = if (session.connectionType == ConnectionType.BLUETOOTH) {
+                "Bluetooth"
+            } else {
+                "Wired"
+            }
+            val statusLine = "$connectionType · ${formatDuration(session)}"
+
+            binding.durationText.text = statusLine
+            binding.durationText.contentDescription =
+                if (session.isActive) "Live session. $statusLine" else "Ended session. $statusLine"
+        }
+
+        private fun formatDuration(session: HeadphoneSession): String {
+            val totalSeconds = session.getDurationMs() / 1000
+            val seconds = totalSeconds % 60
+            val totalMinutes = totalSeconds / 60
+            val minutes = totalMinutes % 60
+            val hours = totalMinutes / 60
+
+            return if (hours > 0) {
+                String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                String.format(Locale.getDefault(), "%d:%02d", totalMinutes, seconds)
+            }
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
