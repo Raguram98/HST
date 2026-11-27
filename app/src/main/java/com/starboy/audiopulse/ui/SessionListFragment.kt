@@ -212,7 +212,7 @@ class SessionListFragment : Fragment() {
         val showEmpty = filteredSessions.isEmpty()
         emptyStateView.visibility = if (showEmpty) View.VISIBLE else View.GONE
         recyclerView.visibility = if (showEmpty) View.GONE else View.VISIBLE
-        emptyClearButton.visibility = if (showEmpty && filtersActive) View.VISIBLE else View.GONE
+        emptyClearButton.visibility = if (showEmpty && filtersActive) View.VISIBLE else View.INVISIBLE
 
         if (currentSessions.isEmpty() && !filtersActive) {
             emptyStateIcon.visibility = View.VISIBLE
