@@ -4,6 +4,12 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val hasReleaseSigning = listOf(
+    System.getenv("KEYSTORE_PASSWORD"),
+    System.getenv("KEY_ALIAS"),
+    System.getenv("KEY_PASSWORD")
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.starboy.audiopulse"
     compileSdk = 34
@@ -14,6 +20,25 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file("ci.keystore")
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     buildFeatures {
