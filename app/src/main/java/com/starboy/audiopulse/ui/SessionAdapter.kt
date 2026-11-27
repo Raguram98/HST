@@ -7,8 +7,6 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.transition.AutoTransition
-import android.transition.TransitionManager
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -39,7 +37,7 @@ class SessionAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private sealed class Row {
-        data class DateHeader(val title: String) : Row()
+        data class DateHeader(val title: String, val stableId: Long) : Row()
         data class Session(val value: HeadphoneSession) : Row()
     }
 
@@ -49,6 +47,15 @@ class SessionAdapter(
     companion object {
         private const val TYPE_DATE = 0
         private const val TYPE_SESSION = 1
+    }
+
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long = when (val row = rows[position]) {
+        is Row.DateHeader -> row.stableId
+        is Row.Session -> row.value.id
     }
 
     fun submitSessions(sessions: List<HeadphoneSession>) {
@@ -66,7 +73,7 @@ class SessionAdapter(
                     isSameDay(date, yesterday) -> "Yesterday"
                     else -> SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(session.connectedTime))
                 }
-                rows.add(Row.DateHeader(title))
+                rows.add(Row.DateHeader(title, -dateKey.toLong()))
                 lastDateKey = dateKey
             }
             rows.add(Row.Session(session))
@@ -97,6 +104,12 @@ class SessionAdapter(
 
     override fun getItemCount(): Int = rows.size
 
+    fun dismissActivePopup() {
+        activePopupWindow?.dismiss()
+    }
+
+    private var activePopupWindow: PopupWindow? = null
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val row = rows[position]) {
             is Row.DateHeader -> (holder as DateHeaderHolder).bind(row.title)
@@ -118,6 +131,7 @@ class SessionAdapter(
     }
 
     private fun showActions(anchor: View, session: HeadphoneSession) {
+        dismissActivePopup()
         val popupView = LayoutInflater.from(anchor.context)
             .inflate(R.layout.popup_session_actions, null, false)
 
@@ -132,6 +146,11 @@ class SessionAdapter(
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = 8 * anchor.resources.displayMetrics.density
         }
+
+        popupWindow.setOnDismissListener {
+            if (activePopupWindow === popupWindow) activePopupWindow = null
+        }
+        activePopupWindow = popupWindow
 
         popupView.findViewById<View>(R.id.action_rename).setOnClickListener {
             popupWindow.dismiss()
@@ -239,7 +258,7 @@ class SessionAdapter(
             binding.root.setOnClickListener { onToggle() }
             binding.expandIcon.setOnClickListener { onToggle() }
             binding.actionsButton.setOnClickListener { onActions(it) }
-            setExpanded(expanded, false)
+            setExpanded(expanded)
             updateStatus(session)
             if (isLiveSession(session)) {
                 startDurationUpdates(session)
@@ -247,16 +266,7 @@ class SessionAdapter(
             }
         }
 
-        fun setExpanded(expanded: Boolean, animate: Boolean = true) {
-            if (animate) {
-                // Animate the RecyclerView as a whole so neighbouring cards
-                // move smoothly while this card expands or collapses.
-                val transitionRoot = binding.root.parent as? ViewGroup ?: binding.root
-                TransitionManager.beginDelayedTransition(
-                    transitionRoot,
-                    AutoTransition().apply { duration = 220 }
-                )
-            }
+        fun setExpanded(expanded: Boolean) {
             binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.expandIcon.text = ""
@@ -276,10 +286,14 @@ class SessionAdapter(
             val durationSeconds = durationSeconds(session)
 
             binding.statusConnectionText.text = connection
-            binding.statusDurationText.text = formatDuration(durationSeconds)
+            updateDurationText(session)
             binding.deviceAvatarRing.visibility = if (live) View.VISIBLE else View.GONE
             binding.root.contentDescription =
                 "${if (live) "Live" else "Ended"}, $connection, ${if (live) "connected" else "lasted"} ${spokenDuration(durationSeconds)}"
+        }
+
+        private fun updateDurationText(session: HeadphoneSession) {
+            binding.statusDurationText.text = formatDuration(durationSeconds(session))
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
@@ -292,7 +306,7 @@ class SessionAdapter(
                         stopUpdates()
                         return
                     }
-                    updateStatus(session)
+                    updateDurationText(session)
                     startLiveAnimationsIfAllowed()
                     timerHandler.postDelayed(this, 1000)
                 }

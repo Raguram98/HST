@@ -115,7 +115,8 @@
                         android:text="0:06"
                         android:textColor="?attr/colorOnSurface"
                         android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:fontFeatureSettings="tnum" />
                 </LinearLayout>
             </LinearLayout>
 

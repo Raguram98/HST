@@ -85,6 +85,12 @@ class SessionListFragment : Fragment() {
                     if (dy > 0) subtitleText.visibility = View.GONE
                     else if (dy < 0) subtitleText.visibility = View.VISIBLE
                 }
+
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    if (newState != RecyclerView.SCROLL_STATE_IDLE) {
+                        this@SessionListFragment.adapter.dismissActivePopup()
+                    }
+                }
             })
         }
 
