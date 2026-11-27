@@ -218,25 +218,19 @@ class SessionListFragment : Fragment() {
             emptyStateIcon.visibility = View.VISIBLE
             emptyStateIcon.setImageResource(R.drawable.ic_headphones)
             emptyStateIcon.contentDescription = "Headphones"
-            viewNotFoundLabelVisibility(false)
             emptyStateTitle.visibility = View.VISIBLE
             emptyStateTitle.text = "Nothing playing yet"
+            emptyStateMessage.visibility = View.VISIBLE
             emptyStateMessage.text =
                 "Connect your headphones and your listening sessions will show up here."
         } else if (showEmpty) {
             emptyStateIcon.visibility = View.VISIBLE
             emptyStateIcon.setImageResource(R.drawable.ic_not_found)
             emptyStateIcon.contentDescription = "Not Found"
-            viewNotFoundLabelVisibility(true)
             emptyStateTitle.visibility = View.VISIBLE
             emptyStateTitle.text = "No sessions match these filters"
-            emptyStateMessage.text = ""
+            emptyStateMessage.visibility = View.GONE
         }
-    }
-
-    private fun viewNotFoundLabelVisibility(visible: Boolean) {
-        view?.findViewById<TextView>(R.id.empty_state_label)?.visibility =
-            if (visible) View.VISIBLE else View.GONE
     }
 
     private fun getTimeFilterStartTime(): Long? {
