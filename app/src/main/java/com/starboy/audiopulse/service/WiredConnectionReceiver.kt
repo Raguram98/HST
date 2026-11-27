@@ -63,7 +63,7 @@ class WiredConnectionReceiver : BroadcastReceiver() {
             DiagnosticLogger.log(
                 context, "application_receiver", "WIRED_CONNECTION_EVENT",
                 "Unknown Wired Device", "WIRED",
-                "rawState=$rawState; ignored=true", isReplay = true
+                "rawState=$rawState; ignored=true"
             )
             return
         }
