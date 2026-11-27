@@ -1,8 +1,6 @@
 package com.starboy.audiopulse.ui
 
-import android.content.Intent
 import android.os.Handler
-import android.provider.Settings
 import android.os.Looper
 import android.transition.AutoTransition
 import android.transition.TransitionManager
@@ -130,21 +128,6 @@ class SessionAdapter(
             elevation = 8 * anchor.resources.displayMetrics.density
         }
 
-        val disconnectItem = popupView.findViewById<View>(R.id.action_disconnect)
-        disconnectItem.visibility =
-            if (session.isActive && session.connectionType == ConnectionType.BLUETOOTH) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-
-        disconnectItem.setOnClickListener {
-            popupWindow.dismiss()
-            anchor.context.startActivity(
-                Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-        }
         popupView.findViewById<View>(R.id.action_rename).setOnClickListener {
             popupWindow.dismiss()
             showRenameDialog(anchor, session)
@@ -159,9 +142,35 @@ class SessionAdapter(
                 .show()
         }
 
-        // Align the popup's right edge with the three-dot button. The fixed,
-        // compact width keeps it inside the card's padded right edge on phones.
-        popupWindow.showAsDropDown(anchor, 0, 0, Gravity.END)
+        // Measure the fully inflated menu so font scaling and future menu rows
+        // are included when deciding whether it fits below the actions button.
+        popupView.measure(
+            View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val popupHeight = popupView.measuredHeight
+
+        // Find this session's card and compare its bottom edge with the space
+        // available below the button. If the menu would cross the card bottom,
+        // place its bottom edge level with the top of the actions button.
+        var card: View? = anchor
+        while (card != null && card.id != R.id.session_card) {
+            card = card.parent as? View
+        }
+
+        val cardBottom = card?.let {
+            val location = IntArray(2)
+            it.getLocationOnScreen(location)
+            location[1] + it.height
+        }
+        val anchorLocation = IntArray(2)
+        anchor.getLocationOnScreen(anchorLocation)
+        val anchorBottom = anchorLocation[1] + anchor.height
+        val availableBelow = cardBottom?.minus(anchorBottom)
+        val openUpward = availableBelow != null && popupHeight > availableBelow
+
+        val verticalOffset = if (openUpward) -popupHeight - anchor.height else 0
+        popupWindow.showAsDropDown(anchor, 0, verticalOffset, Gravity.END)
     }
 
     private fun showRenameDialog(anchor: View, session: HeadphoneSession) {
