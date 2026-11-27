@@ -29,10 +29,10 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:text="Your listening,\nin numbers."
             android:textColor="?attr/colorOnSurface"
-            android:textSize="30sp"
+            android:textSize="28sp"
             android:fontFamily="sans"
             android:letterSpacing="-0.025"
             android:lineSpacingExtra="-2dp"
@@ -41,11 +41,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:layout_marginBottom="22dp"
             android:text="A little insight into how you tune in."
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
