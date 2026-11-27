@@ -86,33 +86,6 @@
                     android:minHeight="20dp"
                     android:orientation="horizontal">
 
-                    <View
-                        android:id="@+id/status_dot"
-                        android:layout_width="7dp"
-                        android:layout_height="7dp"
-                        android:importantForAccessibility="no"
-                        android:background="@drawable/bg_session_status_dot" />
-
-                    <TextView
-                        android:id="@+id/status_state_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:singleLine="true"
-                        android:text="Live"
-                        android:textColor="?attr/colorPrimary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="4dp"
-                        android:importantForAccessibility="no"
-                        android:text="·"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="12sp" />
-
                     <TextView
                         android:id="@+id/status_connection_text"
                         android:layout_width="0dp"
@@ -276,28 +249,7 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="6dp"
-                android:visibility="gone"
-                android:id="@+id/battery_row">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Battery level"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="13sp" />
-                <TextView
-                    android:id="@+id/battery_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Unavailable"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="13sp" />
-            </LinearLayout>
+
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -236,9 +235,6 @@ class SessionAdapter(
             binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: ""
             binding.endTimeRow.visibility = if (isLiveSession(session)) View.GONE else View.VISIBLE
             binding.connectionTypeText.text = connectionLabel(session)
-            binding.batteryRow.visibility =
-                if (isLiveSession(session) && isBluetooth) View.VISIBLE else View.GONE
-            binding.batteryText.text = "Unavailable"
 
             binding.root.setOnClickListener { onToggle() }
             binding.expandIcon.setOnClickListener { onToggle() }
@@ -278,24 +274,12 @@ class SessionAdapter(
             val live = isLiveSession(session)
             val connection = connectionLabel(session)
             val durationSeconds = durationSeconds(session)
-            val stateLabel = if (live) "Live" else "Ended"
 
-            binding.statusStateText.text = stateLabel
             binding.statusConnectionText.text = connection
             binding.statusDurationText.text = formatDuration(durationSeconds)
-
-            val statusColor = ContextCompat.getColor(
-                binding.root.context,
-                if (live) R.color.md_theme_primary else R.color.md_theme_on_surface_variant
-            )
-            binding.statusStateText.setTextColor(statusColor)
-            binding.statusDot.background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(statusColor)
-            }
             binding.deviceAvatarRing.visibility = if (live) View.VISIBLE else View.GONE
             binding.root.contentDescription =
-                "$stateLabel, $connection, ${if (live) "connected" else "lasted"} ${spokenDuration(durationSeconds)}"
+                "${if (live) "Live" else "Ended"}, $connection, ${if (live) "connected" else "lasted"} ${spokenDuration(durationSeconds)}"
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
@@ -334,19 +318,15 @@ class SessionAdapter(
 
             stopLiveAnimations()
             binding.deviceAvatarRing.visibility = View.VISIBLE
-            val views = listOf(binding.statusDot, binding.deviceAvatarRing)
-            pulseAnimators = views.flatMapIndexed { index, view ->
-                val maxScale = if (index == 0) 1.16f else 1.045f
-                val minAlpha = if (index == 0) 0.72f else 0.48f
-                listOf(
-                    ObjectAnimator.ofFloat(view, View.SCALE_X, 1f, maxScale, 1f),
-                    ObjectAnimator.ofFloat(view, View.SCALE_Y, 1f, maxScale, 1f),
-                    ObjectAnimator.ofFloat(view, View.ALPHA, 1f, minAlpha, 1f)
-                ).onEach { animator ->
-                    animator.duration = 1500
-                    animator.repeatCount = ValueAnimator.INFINITE
-                    animator.interpolator = AccelerateDecelerateInterpolator()
-                }
+            val ring = binding.deviceAvatarRing
+            pulseAnimators = listOf(
+                ObjectAnimator.ofFloat(ring, View.SCALE_X, 1f, 1.045f, 1f),
+                ObjectAnimator.ofFloat(ring, View.SCALE_Y, 1f, 1.045f, 1f),
+                ObjectAnimator.ofFloat(ring, View.ALPHA, 1f, 0.48f, 1f)
+            ).onEach { animator ->
+                animator.duration = 1500
+                animator.repeatCount = ValueAnimator.INFINITE
+                animator.interpolator = AccelerateDecelerateInterpolator()
             }
             pulseAnimators.forEach { it.start() }
         }
@@ -354,9 +334,6 @@ class SessionAdapter(
         fun stopLiveAnimations() {
             pulseAnimators.forEach { it.cancel() }
             pulseAnimators = emptyList()
-            binding.statusDot.alpha = 1f
-            binding.statusDot.scaleX = 1f
-            binding.statusDot.scaleY = 1f
             binding.deviceAvatarRing.alpha = 1f
             binding.deviceAvatarRing.scaleX = 1f
             binding.deviceAvatarRing.scaleY = 1f
