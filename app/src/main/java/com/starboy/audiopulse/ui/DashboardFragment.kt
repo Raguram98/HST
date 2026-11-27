@@ -25,10 +25,11 @@ class DashboardFragment : Fragment() {
     private val binding get() = _binding!!
     private val handler = Handler(Looper.getMainLooper())
     private var latestSessions: List<HeadphoneSession> = emptyList()
+    private var hasLoadedSessions = false
 
     private val updateRunnable = object : Runnable {
         override fun run() {
-            if (_binding != null) {
+            if (_binding != null && hasLoadedSessions) {
                 updateDashboard(latestSessions)
                 handler.postDelayed(this, 1000)
             }
@@ -40,6 +41,8 @@ class DashboardFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        hasLoadedSessions = false
+        latestSessions = emptyList()
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -50,10 +53,15 @@ class DashboardFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.allSessions.collect { sessions ->
                 latestSessions = sessions
+                hasLoadedSessions = true
                 updateDashboard(sessions)
+
+                // Start the one-second refresh only after Room has supplied
+                // its initial data, rather than briefly rendering empty stats.
+                handler.removeCallbacks(updateRunnable)
+                handler.postDelayed(updateRunnable, 1000)
             }
         }
-        handler.post(updateRunnable)
     }
 
     private fun updateDashboard(sessions: List<HeadphoneSession>) {
@@ -121,6 +129,7 @@ class DashboardFragment : Fragment() {
 
     override fun onDestroyView() {
         handler.removeCallbacks(updateRunnable)
+        hasLoadedSessions = false
         _binding = null
         super.onDestroyView()
     }
