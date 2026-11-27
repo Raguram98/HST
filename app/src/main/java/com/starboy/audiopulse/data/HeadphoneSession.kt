@@ -18,7 +18,7 @@ data class HeadphoneSession(
 
     // Stable device key: Bluetooth MAC address or a synthetic wired-device key.
     // Empty means this is a legacy session created before device identity was stored.
-    @ColumnInfo(defaultValue = "")
+    @ColumnInfo(defaultValue = "''")
     val deviceAddress: String = "",
 
     val connectedTime: Long,

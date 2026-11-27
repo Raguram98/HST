@@ -45,7 +45,7 @@ object DeviceSessionManager {
                             ""
                         }
                         val address = platformAddress.takeIf { it.isNotBlank() }
-                            ?: "wired:${device.type}:$name"
+                            ?: "wired:headset"
                         addresses.add(normalizeAddress(address))
                     }
                     AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,

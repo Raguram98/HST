@@ -130,7 +130,7 @@ class WiredConnectionReceiver : BroadcastReceiver() {
     private fun createFallbackDevice(intent: Intent): WiredDevice {
         val name = intent.getStringExtra("name")?.takeIf { it.isNotBlank() } ?: "Wired Headphones"
         val type = AudioDeviceInfo.TYPE_WIRED_HEADPHONES
-        return WiredDevice(name, "wired:$type:$name", type)
+        return WiredDevice(name, "wired:headset", type)
     }
 
     private fun getConnectedWiredDevices(context: Context): List<WiredDevice> {
@@ -148,7 +148,7 @@ class WiredConnectionReceiver : BroadcastReceiver() {
                     ""
                 }
                 val address = platformAddress.takeIf { it.isNotBlank() }
-                    ?: "wired:${info.type}:$name"
+                    ?: "wired:headset"
                 WiredDevice(name, address, info.type)
             }
     }
