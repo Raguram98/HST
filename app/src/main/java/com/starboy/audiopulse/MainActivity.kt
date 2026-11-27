@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import android.content.Intent
 import android.content.IntentFilter
 import com.starboy.audiopulse.service.HeadphoneReceiver
+import com.starboy.audiopulse.service.DiagnosticLogger
 
 /**
  * Main activity with bottom navigation between List and Dashboard views.
@@ -20,12 +21,19 @@ import com.starboy.audiopulse.service.HeadphoneReceiver
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var bottomNav: BottomNavigationView
-    private val headphoneReceiver = HeadphoneReceiver()
+    private val headphoneReceiver = HeadphoneReceiver("dynamic_receiver")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Remove diagnostic history saved by older app versions.
-        getSharedPreferences("audiopulse_diagnostics", MODE_PRIVATE).edit().clear().apply()
+        // Keep diagnostic history across launches; the logger retains the latest 500 entries.
+        DiagnosticLogger.log(
+            context = this,
+            source = "main_activity",
+            event = "APP_LIFECYCLE",
+            deviceName = "N/A",
+            deviceType = "APP",
+            details = "callback=onCreate"
+        )
         setContentView(R.layout.activity_main)
         checkBluetoothPermissions()
 
@@ -88,6 +96,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        DiagnosticLogger.log(
+            context = this,
+            source = "main_activity",
+            event = "APP_LIFECYCLE",
+            deviceName = "N/A",
+            deviceType = "APP",
+            details = "callback=onStart"
+        )
 
         val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
         ContextCompat.registerReceiver(
@@ -99,6 +115,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        DiagnosticLogger.log(
+            context = this,
+            source = "main_activity",
+            event = "APP_LIFECYCLE",
+            deviceName = "N/A",
+            deviceType = "APP",
+            details = "callback=onStop; unregistering dynamic wired receiver"
+        )
         try {
             unregisterReceiver(headphoneReceiver)
         } catch (e: IllegalArgumentException) {
