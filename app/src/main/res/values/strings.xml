@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AudioPulse</string>
+    <string name="empty_state_filtered_title">No sessions found</string>
 </resources>

@@ -228,7 +228,7 @@ class SessionListFragment : Fragment() {
             emptyStateIcon.setImageResource(R.drawable.ic_not_found)
             emptyStateIcon.contentDescription = "Not Found"
             emptyStateTitle.visibility = View.VISIBLE
-            emptyStateTitle.text = "No sessions match these filters"
+            emptyStateTitle.text = getString(R.string.empty_state_filtered_title)
             emptyStateMessage.visibility = View.GONE
         }
     }
