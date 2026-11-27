@@ -11,7 +11,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.graphics.drawable.ColorDrawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -114,31 +115,53 @@ class SessionAdapter(
     }
 
     private fun showActions(anchor: View, session: HeadphoneSession) {
-        PopupMenu(anchor.context, anchor).apply {
-            if (session.isActive && session.connectionType == ConnectionType.BLUETOOTH) {
-                menu.add("Disconnect in Bluetooth settings")
-            }
-            menu.add("Rename device")
-            menu.add("Delete session")
-            setOnMenuItemClickListener { item ->
-                when (item.title.toString()) {
-                    "Disconnect in Bluetooth settings" -> {
-                        anchor.context.startActivity(
-                            Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
-                    "Rename device" -> showRenameDialog(anchor, session)
-                    "Delete session" -> MaterialAlertDialogBuilder(anchor.context)
-                        .setTitle("Delete session?")
-                        .setMessage("This removes this session record from AudioPulse. It cannot be undone.")
-                        .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Delete") { _, _ -> onDelete(session) }
-                        .show()
-                }
-                true
-            }
-            show()
+        val popupView = LayoutInflater.from(anchor.context)
+            .inflate(R.layout.popup_session_actions, null, false)
+
+        val popupWidth = (208 * anchor.resources.displayMetrics.density).toInt()
+        val popupWindow = PopupWindow(
+            popupView,
+            popupWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            isOutsideTouchable = true
+            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            elevation = 8 * anchor.resources.displayMetrics.density
         }
+
+        val disconnectItem = popupView.findViewById<View>(R.id.action_disconnect)
+        disconnectItem.visibility =
+            if (session.isActive && session.connectionType == ConnectionType.BLUETOOTH) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+
+        disconnectItem.setOnClickListener {
+            popupWindow.dismiss()
+            anchor.context.startActivity(
+                Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+        popupView.findViewById<View>(R.id.action_rename).setOnClickListener {
+            popupWindow.dismiss()
+            showRenameDialog(anchor, session)
+        }
+        popupView.findViewById<View>(R.id.action_delete).setOnClickListener {
+            popupWindow.dismiss()
+            MaterialAlertDialogBuilder(anchor.context)
+                .setTitle("Delete session?")
+                .setMessage("This removes this session record from AudioPulse. It cannot be undone.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete") { _, _ -> onDelete(session) }
+                .show()
+        }
+
+        // Align the popup's right edge with the three-dot button. The fixed,
+        // compact width keeps it inside the card's padded right edge on phones.
+        popupWindow.showAsDropDown(anchor, 0, 0, Gravity.END)
     }
 
     private fun showRenameDialog(anchor: View, session: HeadphoneSession) {
