@@ -1,21 +1,23 @@
 package com.starboy.audiopulse.ui
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.EditText
-import android.widget.Spinner
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.starboy.audiopulse.R
 import com.starboy.audiopulse.data.ConnectionType
 import com.starboy.audiopulse.data.HeadphoneSession
@@ -31,16 +33,22 @@ class SessionListFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: SessionAdapter
     private lateinit var emptyStateView: View
+    private lateinit var emptyStateIcon: ImageView
     private lateinit var emptyStateTitle: TextView
     private lateinit var emptyStateMessage: TextView
-    private lateinit var summaryText: TextView
+    private lateinit var resultCountText: TextView
+    private lateinit var clearFiltersText: TextView
+    private lateinit var emptyClearButton: View
     private lateinit var searchInput: EditText
-    private lateinit var connectionFilter: Spinner
-    private lateinit var dateFilter: Spinner
+    private lateinit var subtitleText: TextView
+    private lateinit var connectionChipGroup: ChipGroup
+    private lateinit var timeChipGroup: ChipGroup
 
     private var currentSessions: List<HeadphoneSession> = emptyList()
     private var selectedConnectionType: ConnectionType? = null
-    private var selectedDateFilter = 0
+    // 0 = all time, 1 = today, 2 = last 24 hours, 3 = last 7 days, 4 = last 30 days
+    private var selectedTimeFilter = 0
+    private var isUpdatingControls = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,12 +61,16 @@ class SessionListFragment : Fragment() {
 
         recyclerView = view.findViewById(R.id.sessions_recycler_view)
         emptyStateView = view.findViewById(R.id.empty_state_view)
+        emptyStateIcon = view.findViewById(R.id.empty_state_icon)
         emptyStateTitle = view.findViewById(R.id.empty_state_title)
         emptyStateMessage = view.findViewById(R.id.empty_state_message)
-        summaryText = view.findViewById(R.id.sessions_summary_text)
+        resultCountText = view.findViewById(R.id.sessions_result_count)
+        clearFiltersText = view.findViewById(R.id.clear_filters_text)
+        emptyClearButton = view.findViewById(R.id.empty_clear_filters)
         searchInput = view.findViewById(R.id.session_search_input)
-        connectionFilter = view.findViewById(R.id.connection_filter_spinner)
-        dateFilter = view.findViewById(R.id.date_filter_spinner)
+        subtitleText = view.findViewById(R.id.library_subtitle)
+        connectionChipGroup = view.findViewById(R.id.connection_chip_group)
+        timeChipGroup = view.findViewById(R.id.time_chip_group)
 
         adapter = SessionAdapter(
             onRename = { session, name -> viewModel.renameSession(session, name) },
@@ -70,9 +82,25 @@ class SessionListFragment : Fragment() {
             adapter = this@SessionListFragment.adapter
             edgeEffectFactory = BouncyEdgeEffectFactory()
             setHasFixedSize(false)
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    if (dy > 0) subtitleText.visibility = View.GONE
+                    else if (dy < 0) subtitleText.visibility = View.VISIBLE
+                }
+            })
         }
 
-        setupFilters()
+        setupFilterChips()
+        clearFiltersText.setOnClickListener { clearFilters() }
+        emptyClearButton.setOnClickListener { clearFilters() }
+
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                applyFilters()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.allSessions.collect { sessions ->
@@ -82,129 +110,142 @@ class SessionListFragment : Fragment() {
         }
     }
 
-    private fun setupFilters() {
-        val connectionOptions = resources.getStringArray(R.array.session_connection_filters)
-        connectionFilter.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            connectionOptions
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
-        val dateOptions = resources.getStringArray(R.array.session_date_filters)
-        dateFilter.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            dateOptions
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
-        connectionFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedConnectionType = when (position) {
-                    1 -> ConnectionType.BLUETOOTH
-                    2 -> ConnectionType.WIRED
-                    else -> null
-                }
-                applyFilters()
+    private fun setupFilterChips() {
+        addFilterChips(connectionChipGroup, listOf("All", "Bluetooth", "Wired")) { index ->
+            selectedConnectionType = when (index) {
+                1 -> ConnectionType.BLUETOOTH
+                2 -> ConnectionType.WIRED
+                else -> null
             }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            applyFilters()
         }
 
-        dateFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedDateFilter = position
-                applyFilters()
-            }
+        addFilterChips(
+            timeChipGroup,
+            listOf("All time", "Today", "Last 24h", "Last 7 days", "Last 30 days")
+        ) { index ->
+            selectedTimeFilter = index
+            applyFilters()
+        }
+    }
 
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+    private fun addFilterChips(
+        group: ChipGroup,
+        labels: List<String>,
+        onSelected: (Int) -> Unit
+    ) {
+        group.removeAllViews()
+        labels.forEach { label ->
+            val chip = Chip(requireContext()).apply {
+                id = View.generateViewId()
+                text = label
+                isCheckable = true
+                isClickable = true
+                chipMinHeight = dp(40).toFloat()
+                textSize = 13f
+                setEnsureMinTouchTargetSize(true)
+            }
+            group.addView(chip)
         }
 
-        searchInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                applyFilters()
+        group.setOnCheckedStateChangeListener { chipGroup, checkedIds ->
+            val selectedId = checkedIds.firstOrNull()
+            var selectedIndex = 0
+            for (index in 0 until chipGroup.childCount) {
+                val chip = chipGroup.getChildAt(index) as Chip
+                styleChip(chip, chip.id == selectedId)
+                if (chip.id == selectedId) selectedIndex = index
             }
-            override fun afterTextChanged(s: Editable?) = Unit
-        })
+            if (!isUpdatingControls) onSelected(selectedIndex)
+        }
+        group.check(group.getChildAt(0).id)
+    }
+
+    private fun styleChip(chip: Chip, selected: Boolean) {
+        val context = requireContext()
+        chip.chipBackgroundColor = ColorStateList.valueOf(
+            ContextCompat.getColor(
+                context,
+                if (selected) R.color.md_theme_primary else R.color.md_theme_surface
+            )
+        )
+        chip.setTextColor(
+            ContextCompat.getColor(
+                context,
+                if (selected) R.color.md_theme_on_primary else R.color.md_theme_on_surface_variant
+            )
+        )
+        chip.chipStrokeWidth = dp(if (selected) 0 else 1).toFloat()
+        chip.chipStrokeColor = ColorStateList.valueOf(
+            ContextCompat.getColor(context, R.color.md_theme_outline)
+        )
+    }
+
+    private fun clearFilters() {
+        isUpdatingControls = true
+        selectedConnectionType = null
+        selectedTimeFilter = 0
+        searchInput.setText("")
+        connectionChipGroup.check(connectionChipGroup.getChildAt(0).id)
+        timeChipGroup.check(timeChipGroup.getChildAt(0).id)
+        isUpdatingControls = false
+        applyFilters()
     }
 
     private fun applyFilters() {
-        if (!isAdded) return
+        if (!isAdded || !::searchInput.isInitialized) return
 
-        val query = searchInput.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
-        val startTime = getDateFilterStartTime()
-
+        val query = searchInput.text?.toString()?.trim()?.lowercase(Locale.ROOT).orEmpty()
+        val startTime = getTimeFilterStartTime()
         val filteredSessions = currentSessions.filter { session ->
             val matchesName = query.isEmpty() ||
-                session.deviceName.lowercase(Locale.getDefault()).contains(query)
+                session.deviceName.lowercase(Locale.ROOT).contains(query)
             val matchesConnection = selectedConnectionType == null ||
                 session.connectionType == selectedConnectionType
-            val matchesDate = startTime == null || session.connectedTime >= startTime
-
-            matchesName && matchesConnection && matchesDate
+            val matchesTime = startTime == null || session.connectedTime >= startTime
+            matchesName && matchesConnection && matchesTime
         }
 
         adapter.submitSessions(filteredSessions)
 
-        val hasAnySessions = currentSessions.isNotEmpty()
-        val hasMatches = filteredSessions.isNotEmpty()
-        emptyStateView.visibility = if (hasMatches) View.GONE else View.VISIBLE
-        recyclerView.visibility = if (hasMatches) View.VISIBLE else View.GONE
+        val filtersActive = query.isNotEmpty() ||
+            selectedConnectionType != null || selectedTimeFilter != 0
+        resultCountText.text = "${filteredSessions.size} ${if (filteredSessions.size == 1) "session" else "sessions"}"
+        clearFiltersText.visibility = if (filtersActive) View.VISIBLE else View.GONE
 
-        if (!hasAnySessions) {
+        val showEmpty = filteredSessions.isEmpty()
+        emptyStateView.visibility = if (showEmpty) View.VISIBLE else View.GONE
+        recyclerView.visibility = if (showEmpty) View.GONE else View.VISIBLE
+        emptyClearButton.visibility = if (showEmpty && filtersActive) View.VISIBLE else View.GONE
+
+        if (currentSessions.isEmpty() && !filtersActive) {
+            emptyStateIcon.visibility = View.VISIBLE
             emptyStateTitle.text = "Nothing playing yet"
             emptyStateMessage.text =
                 "Connect your headphones and your listening sessions will show up here."
-            summaryText.visibility = View.GONE
-        } else if (!hasMatches) {
-            emptyStateTitle.text = "No matching sessions"
-            emptyStateMessage.text = "Try another device name or change the connection and date filters."
-            summaryText.visibility = View.VISIBLE
-        } else {
-            summaryText.visibility = View.VISIBLE
-        }
-
-        if (hasAnySessions) {
-            summaryText.text = buildTodaySummary(currentSessions, filteredSessions.size)
+        } else if (showEmpty) {
+            emptyStateIcon.visibility = View.GONE
+            emptyStateTitle.text = "No sessions match these filters"
+            emptyStateMessage.text = ""
         }
     }
 
-    private fun getDateFilterStartTime(): Long? {
-        if (selectedDateFilter == 0) return null
-
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+    private fun getTimeFilterStartTime(): Long? {
+        val now = System.currentTimeMillis()
+        return when (selectedTimeFilter) {
+            1 -> Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            2 -> now - 24L * 60 * 60 * 1000
+            3 -> now - 7L * 24 * 60 * 60 * 1000
+            4 -> now - 30L * 24 * 60 * 60 * 1000
+            else -> null
         }
-
-        when (selectedDateFilter) {
-            1 -> Unit
-            2 -> calendar.add(Calendar.DAY_OF_YEAR, -6)
-            3 -> calendar.add(Calendar.DAY_OF_YEAR, -29)
-        }
-        return calendar.timeInMillis
     }
 
-    private fun buildTodaySummary(
-        sessions: List<HeadphoneSession>,
-        visibleCount: Int
-    ): String {
-        val startOfToday = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-
-        val todaySessions = sessions.filter { it.connectedTime >= startOfToday }
-        val totalMs = todaySessions.sumOf { it.getDurationMs() }
-        val totalMinutes = totalMs / 60_000
-        val hours = totalMinutes / 60
-        val minutes = totalMinutes % 60
-        val duration = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
-        val countLabel = if (todaySessions.size == 1) "session" else "sessions"
-        return "Showing $visibleCount of ${sessions.size} · ${todaySessions.size} $countLabel today · $duration"
-    }
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 }
