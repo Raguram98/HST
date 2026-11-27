@@ -39,8 +39,6 @@
     <color name="empty_icon_background">#173329</color>
     <color name="badge_wireless_background">#173D32</color>
     <color name="badge_wired_background">#164638</color>
-    <color name="badge_active_background">#1B4F40</color>
-    <color name="badge_active_text">#CFF7E5</color>
     <color name="badge_complete_background">#1B2822</color>
     <color name="badge_complete_text">#A8BDB3</color>
 </resources>

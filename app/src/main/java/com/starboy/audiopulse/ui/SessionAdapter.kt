@@ -1,16 +1,22 @@
 package com.starboy.audiopulse.ui
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.TextView
 import android.widget.PopupWindow
-import android.graphics.drawable.ColorDrawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -65,7 +71,7 @@ class SessionAdapter(
                 lastDateKey = dateKey
             }
             rows.add(Row.Session(session))
-            if (session.isActive) expandedSessionIds.add(session.id)
+            if (isLiveSession(session)) expandedSessionIds.add(session.id)
         }
         notifyDataSetChanged()
     }
@@ -124,7 +130,7 @@ class SessionAdapter(
             true
         ).apply {
             isOutsideTouchable = true
-            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = 8 * anchor.resources.displayMetrics.density
         }
 
@@ -196,6 +202,9 @@ class SessionAdapter(
 
     private fun View.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun isLiveSession(session: HeadphoneSession): Boolean =
+        session.isActive && session.disconnectedTime == null
+
     private class DateHeaderHolder(private val text: TextView) : RecyclerView.ViewHolder(text) {
         fun bind(title: String) { text.text = title }
     }
@@ -206,6 +215,7 @@ class SessionAdapter(
         private val timerHandler = Handler(Looper.getMainLooper())
         private var updateRunnable: Runnable? = null
         private var currentSession: HeadphoneSession? = null
+        private var pulseAnimators: List<ObjectAnimator> = emptyList()
 
         fun bind(
             session: HeadphoneSession,
@@ -214,6 +224,7 @@ class SessionAdapter(
             onActions: (View) -> Unit
         ) {
             stopUpdates()
+            stopLiveAnimations()
             currentSession = session
             val isBluetooth = session.connectionType == ConnectionType.BLUETOOTH
 
@@ -221,21 +232,23 @@ class SessionAdapter(
             binding.deviceIcon.setImageResource(
                 if (isBluetooth) R.drawable.ic_bluetooth else R.drawable.ic_audio_jack
             )
-            binding.liveBadge.visibility = if (session.isActive) View.VISIBLE else View.GONE
-            binding.liveBadge.text = if (session.isActive) "● LIVE" else ""
             binding.startTimeText.text = formatTime(session.connectedTime)
             binding.endTimeText.text = session.disconnectedTime?.let(::formatTime) ?: ""
-            binding.endTimeRow.visibility = if (session.isActive) View.GONE else View.VISIBLE
-            binding.connectionTypeText.text = if (isBluetooth) "Bluetooth" else "Wired"
-            binding.batteryRow.visibility = if (session.isActive && isBluetooth) View.VISIBLE else View.GONE
+            binding.endTimeRow.visibility = if (isLiveSession(session)) View.GONE else View.VISIBLE
+            binding.connectionTypeText.text = connectionLabel(session)
+            binding.batteryRow.visibility =
+                if (isLiveSession(session) && isBluetooth) View.VISIBLE else View.GONE
             binding.batteryText.text = "Unavailable"
 
             binding.root.setOnClickListener { onToggle() }
             binding.expandIcon.setOnClickListener { onToggle() }
             binding.actionsButton.setOnClickListener { onActions(it) }
             setExpanded(expanded, false)
-            updateDuration(session)
-            startDurationUpdates(session)
+            updateStatus(session)
+            if (isLiveSession(session)) {
+                startDurationUpdates(session)
+                startLiveAnimationsIfAllowed()
+            }
         }
 
         fun setExpanded(expanded: Boolean, animate: Boolean = true) {
@@ -261,22 +274,92 @@ class SessionAdapter(
                 if (expanded) "Collapse session details" else "Expand session details"
         }
 
-        private fun updateDuration(session: HeadphoneSession) {
-            val duration = session.getDurationString()
-            val connectionLabel =
-                if (session.connectionType == ConnectionType.BLUETOOTH) "Bluetooth" else "Wired"
-            binding.durationText.text = "$duration · $connectionLabel"
+        private fun updateStatus(session: HeadphoneSession) {
+            val live = isLiveSession(session)
+            val connection = connectionLabel(session)
+            val durationSeconds = durationSeconds(session)
+            val stateLabel = if (live) "Live" else "Ended"
+
+            binding.statusStateText.text = stateLabel
+            binding.statusConnectionText.text = connection
+            binding.statusDurationText.text = formatDuration(durationSeconds)
+
+            val statusColor = ContextCompat.getColor(
+                binding.root.context,
+                if (live) R.color.md_theme_primary else R.color.md_theme_on_surface_variant
+            )
+            binding.statusStateText.setTextColor(statusColor)
+            binding.statusDot.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(statusColor)
+            }
+            binding.deviceAvatarRing.visibility = if (live) View.VISIBLE else View.GONE
+            binding.root.contentDescription =
+                "$stateLabel, $connection, ${if (live) "connected" else "lasted"} ${spokenDuration(durationSeconds)}"
         }
 
         private fun startDurationUpdates(session: HeadphoneSession) {
             stopUpdates()
+            if (!isLiveSession(session) || !binding.root.isAttachedToWindow) return
+
             updateRunnable = object : Runnable {
                 override fun run() {
-                    updateDuration(session)
-                    if (session.isActive) timerHandler.postDelayed(this, 1000)
+                    if (!isLiveSession(session)) {
+                        stopUpdates()
+                        return
+                    }
+                    updateStatus(session)
+                    startLiveAnimationsIfAllowed()
+                    timerHandler.postDelayed(this, 1000)
                 }
             }
             updateRunnable?.let(timerHandler::post)
+        }
+
+        private fun startLiveAnimationsIfAllowed() {
+            if (!isLiveSession(currentSession ?: return) || !binding.root.isAttachedToWindow) return
+
+            val context = binding.root.context
+            val animatorScale = Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f
+            )
+            val animationsEnabled = animatorScale > 0f && ValueAnimator.areAnimatorsEnabled()
+            if (!animationsEnabled) {
+                stopLiveAnimations()
+                return
+            }
+            if (pulseAnimators.isNotEmpty()) return
+
+            stopLiveAnimations()
+            binding.deviceAvatarRing.visibility = View.VISIBLE
+            val views = listOf(binding.statusDot, binding.deviceAvatarRing)
+            pulseAnimators = views.flatMapIndexed { index, view ->
+                val maxScale = if (index == 0) 1.16f else 1.045f
+                val minAlpha = if (index == 0) 0.72f else 0.48f
+                listOf(
+                    ObjectAnimator.ofFloat(view, View.SCALE_X, 1f, maxScale, 1f),
+                    ObjectAnimator.ofFloat(view, View.SCALE_Y, 1f, maxScale, 1f),
+                    ObjectAnimator.ofFloat(view, View.ALPHA, 1f, minAlpha, 1f)
+                ).onEach { animator ->
+                    animator.duration = 1500
+                    animator.repeatCount = ValueAnimator.INFINITE
+                    animator.interpolator = AccelerateDecelerateInterpolator()
+                }
+            }
+            pulseAnimators.forEach { it.start() }
+        }
+
+        fun stopLiveAnimations() {
+            pulseAnimators.forEach { it.cancel() }
+            pulseAnimators = emptyList()
+            binding.statusDot.alpha = 1f
+            binding.statusDot.scaleX = 1f
+            binding.statusDot.scaleY = 1f
+            binding.deviceAvatarRing.alpha = 1f
+            binding.deviceAvatarRing.scaleX = 1f
+            binding.deviceAvatarRing.scaleY = 1f
         }
 
         fun stopUpdates() {
@@ -285,21 +368,70 @@ class SessionAdapter(
         }
 
         fun resumeUpdates() {
-            currentSession?.takeIf { it.isActive }?.let(::startDurationUpdates)
+            val session = currentSession ?: return
+            if (isLiveSession(session)) {
+                startDurationUpdates(session)
+                startLiveAnimationsIfAllowed()
+            } else {
+                stopUpdates()
+                stopLiveAnimations()
+            }
+        }
+
+        private fun connectionLabel(session: HeadphoneSession): String =
+            if (session.connectionType == ConnectionType.BLUETOOTH) "Bluetooth" else "Wired"
+
+        private fun durationSeconds(session: HeadphoneSession): Long {
+            val endTime = if (isLiveSession(session)) System.currentTimeMillis()
+            else session.disconnectedTime ?: session.connectedTime
+            return ((endTime - session.connectedTime).coerceAtLeast(0L)) / 1000L
+        }
+
+        private fun formatDuration(totalSeconds: Long): String {
+            val seconds = totalSeconds % 60
+            val totalMinutes = totalSeconds / 60
+            val minutes = totalMinutes % 60
+            val hours = totalMinutes / 60
+            return if (hours > 0) {
+                String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                String.format(Locale.getDefault(), "%d:%02d", totalMinutes, seconds)
+            }
+        }
+
+        private fun spokenDuration(totalSeconds: Long): String {
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            val seconds = totalSeconds % 60
+            return buildList {
+                if (hours > 0) add("$hours ${if (hours == 1L) "hour" else "hours"}")
+                if (minutes > 0) add("$minutes ${if (minutes == 1L) "minute" else "minutes"}")
+                if (seconds > 0 || isEmpty()) add("$seconds ${if (seconds == 1L) "second" else "seconds"}")
+            }.joinToString(" ")
         }
 
         private fun formatTime(timestamp: Long): String =
             SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(timestamp))
-
     }
 
     override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
-        if (holder is SessionViewHolder) holder.stopUpdates()
+        if (holder is SessionViewHolder) {
+            holder.stopUpdates()
+            holder.stopLiveAnimations()
+        }
         super.onViewDetachedFromWindow(holder)
     }
 
     override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
         super.onViewAttachedToWindow(holder)
         if (holder is SessionViewHolder) holder.resumeUpdates()
+    }
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        if (holder is SessionViewHolder) {
+            holder.stopUpdates()
+            holder.stopLiveAnimations()
+        }
+        super.onViewRecycled(holder)
     }
 }

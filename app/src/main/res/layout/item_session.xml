@@ -25,6 +25,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="16dp"
@@ -32,15 +34,30 @@
             android:paddingEnd="10dp"
             android:paddingBottom="15dp">
 
-            <ImageView
-                android:id="@+id/device_icon"
+            <FrameLayout
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/bg_icon_circle"
-                android:contentDescription="Connection type"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                app:tint="?attr/colorOnSurface" />
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <ImageView
+                    android:id="@+id/device_icon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_circle"
+                    android:contentDescription="@null"
+                    android:padding="10dp"
+                    android:scaleType="fitCenter"
+                    app:tint="?attr/colorOnSurface" />
+
+                <View
+                    android:id="@+id/device_avatar_ring"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_session_live_ring"
+                    android:importantForAccessibility="no"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -60,37 +77,80 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/duration_text"
+                <LinearLayout
+                    android:id="@+id/status_line"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
-                    android:text="00:00"
-                    android:textColor="?attr/colorPrimary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:minHeight="20dp"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/live_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:background="@drawable/bg_icon_circle"
-                    android:paddingStart="9dp"
-                    android:paddingTop="3dp"
-                    android:paddingEnd="9dp"
-                    android:paddingBottom="3dp"
-                    android:text="● LIVE"
-                    android:textColor="@color/badge_active_text"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
+                    <View
+                        android:id="@+id/status_dot"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:importantForAccessibility="no"
+                        android:background="@drawable/bg_session_status_dot" />
+
+                    <TextView
+                        android:id="@+id/status_state_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:singleLine="true"
+                        android:text="Live"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:importantForAccessibility="no"
+                        android:text="·"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/status_connection_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:singleLine="true"
+                        android:text="Bluetooth"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:importantForAccessibility="no"
+                        android:text="·"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/status_duration_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:text="0:06"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
             <TextView
                 android:id="@+id/expand_icon"
-                android:layout_width="40dp"
-                android:layout_height="44dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:gravity="center"
                 android:contentDescription="Expand session details"
                 android:drawableEnd="@drawable/ic_chevron_down"
@@ -131,8 +191,8 @@
 
                 <ImageButton
                     android:id="@+id/actions_button"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Session actions"
                     android:focusable="true"
