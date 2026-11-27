@@ -14,7 +14,9 @@ import android.content.IntentFilter
 import com.starboy.audiopulse.service.HeadphoneReceiver
 
 /**
- * Main activity with bottom navigation between List and Dashboard views
+ * Main activity with bottom navigation between List and Dashboard views.
+ * Tab fragments are kept in the FragmentManager so switching tabs does not
+ * recreate their views or reset their scroll positions.
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var bottomNav: BottomNavigationView
@@ -30,56 +32,81 @@ class MainActivity : AppCompatActivity() {
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_list -> {
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(R.id.fragment_container, SessionListFragment())
-                        addToBackStack(null)
-                        commit()
-                    }
-                    true
-                }
-                R.id.nav_dashboard -> {
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(R.id.fragment_container, DashboardFragment())
-                        addToBackStack(null)
-                        commit()
-                    }
+                R.id.nav_list, R.id.nav_dashboard -> {
+                    showTab(item.itemId)
                     true
                 }
                 else -> false
             }
         }
+        // Tapping the already-selected tab should leave its current position alone.
+        bottomNav.setOnItemReselectedListener { }
 
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction().apply {
-                replace(R.id.fragment_container, SessionListFragment())
-                commit()
-            }
+        val selectedTab = savedInstanceState?.getInt(SELECTED_TAB_KEY) ?: R.id.nav_list
+        bottomNav.selectedItemId = selectedTab
+        showTab(selectedTab)
+    }
+
+    private fun showTab(itemId: Int) {
+        val fragmentManager = supportFragmentManager
+        val targetTag = when (itemId) {
+            R.id.nav_dashboard -> DASHBOARD_TAG
+            else -> SESSION_LIST_TAG
         }
+
+        val targetFragment = fragmentManager.findFragmentByTag(targetTag)
+            ?: if (itemId == R.id.nav_dashboard) {
+                DashboardFragment()
+            } else {
+                SessionListFragment()
+            }
+
+        val transaction = fragmentManager.beginTransaction()
+        val sessionList = fragmentManager.findFragmentByTag(SESSION_LIST_TAG)
+        val dashboard = fragmentManager.findFragmentByTag(DASHBOARD_TAG)
+
+        if (sessionList != null && sessionList != targetFragment) {
+            transaction.hide(sessionList)
+        }
+        if (dashboard != null && dashboard != targetFragment) {
+            transaction.hide(dashboard)
+        }
+
+        if (targetFragment.isAdded) {
+            transaction.show(targetFragment)
+        } else {
+            transaction.add(R.id.fragment_container, targetFragment, targetTag)
+        }
+
+        transaction.commit()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt(SELECTED_TAB_KEY, bottomNav.selectedItemId)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onStart() {
-    super.onStart()
+        super.onStart()
 
-    val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
-
-    ContextCompat.registerReceiver(
-        this,
-        headphoneReceiver,
-        filter,
-        ContextCompat.RECEIVER_EXPORTED
-    )
-}
-
-override fun onStop() {
-    try {
-        unregisterReceiver(headphoneReceiver)
-    } catch (e: IllegalArgumentException) {
-        e.printStackTrace()
+        val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
+        ContextCompat.registerReceiver(
+            this,
+            headphoneReceiver,
+            filter,
+            ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
-    super.onStop()
-}
+    override fun onStop() {
+        try {
+            unregisterReceiver(headphoneReceiver)
+        } catch (e: IllegalArgumentException) {
+            e.printStackTrace()
+        }
+
+        super.onStop()
+    }
 
     private fun checkBluetoothPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -93,5 +120,11 @@ override fun onStop() {
                 )
             }
         }
+    }
+
+    companion object {
+        private const val SELECTED_TAB_KEY = "selected_bottom_tab"
+        private const val SESSION_LIST_TAG = "session_list_tab"
+        private const val DASHBOARD_TAG = "dashboard_tab"
     }
 }
