@@ -4,6 +4,10 @@ import android.app.Application
 import android.content.Intent
 import android.content.IntentFilter
 import com.starboy.audiopulse.service.WiredConnectionReceiver
+import com.starboy.audiopulse.service.DeviceSessionManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.core.content.ContextCompat
 
 /**
@@ -29,5 +33,9 @@ class AudioPulseApplication : Application() {
             filter,
             ContextCompat.RECEIVER_EXPORTED
         )
+
+        CoroutineScope(Dispatchers.IO).launch {
+            DeviceSessionManager.reconcileFromAudioManager(applicationContext, "application_onCreate")
+        }
     }
 }

@@ -10,6 +10,10 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.starboy.audiopulse.service.DiagnosticLogger
+import com.starboy.audiopulse.service.DeviceSessionManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Main activity with bottom navigation between List and Dashboard views.
@@ -100,6 +104,9 @@ class MainActivity : AppCompatActivity() {
             deviceType = "APP",
             details = "callback=onStart"
         )
+        CoroutineScope(Dispatchers.IO).launch {
+            DeviceSessionManager.reconcileFromAudioManager(applicationContext, "main_activity_onStart")
+        }
     }
 
     override fun onStop() {
