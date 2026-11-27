@@ -72,7 +72,8 @@ class SessionListFragment : Fragment() {
 
         adapter = SessionAdapter(
             onRename = { session, name -> viewModel.renameSession(session, name) },
-            onDelete = { session -> viewModel.deleteSession(session) }
+            onDelete = { session -> viewModel.deleteSession(session) },
+            isRecyclerIdle = { recyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE }
         )
 
         recyclerView.apply {
@@ -81,9 +82,25 @@ class SessionListFragment : Fragment() {
             edgeEffectFactory = BouncyEdgeEffectFactory()
             setHasFixedSize(false)
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                private val collapseThreshold = dp(48)
+                private val expandThreshold = dp(16)
+                private var subtitleCollapsed = false
+
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    if (dy > 0) subtitleText.visibility = View.GONE
-                    else if (dy < 0) subtitleText.visibility = View.VISIBLE
+                    // Clamp spring overscroll offsets and use hysteresis to prevent
+                    // small bounce movements from repeatedly toggling the subtitle.
+                    val scrollOffset = recyclerView.computeVerticalScrollOffset().coerceAtLeast(0)
+                    val shouldCollapse = when {
+                        !subtitleCollapsed && scrollOffset >= collapseThreshold -> true
+                        subtitleCollapsed && scrollOffset <= expandThreshold -> false
+                        else -> subtitleCollapsed
+                    }
+
+                    if (shouldCollapse != subtitleCollapsed) {
+                        subtitleCollapsed = shouldCollapse
+                        // Alpha keeps the measured header height unchanged.
+                        subtitleText.alpha = if (subtitleCollapsed) 0f else 1f
+                    }
                 }
 
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
