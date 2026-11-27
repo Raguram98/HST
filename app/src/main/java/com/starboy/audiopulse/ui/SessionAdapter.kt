@@ -7,8 +7,6 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.transition.AutoTransition
-import android.transition.TransitionManager
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -281,6 +279,7 @@ class SessionAdapter(
         private var updateRunnable: Runnable? = null
         private var currentSession: HeadphoneSession? = null
         private var pulseAnimators: List<ObjectAnimator> = emptyList()
+        private var detailsAnimator: ValueAnimator? = null
 
         fun bind(
             session: HeadphoneSession,
@@ -314,14 +313,10 @@ class SessionAdapter(
         }
 
         fun setExpanded(expanded: Boolean, animate: Boolean = false) {
-            if (animate && binding.root.isAttachedToWindow) {
-                TransitionManager.beginDelayedTransition(
-                    binding.root,
-                    AutoTransition().apply { duration = 220 }
-                )
-            }
-            binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
-            binding.actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
+            val previousAnimator = detailsAnimator
+            detailsAnimator = null
+            previousAnimator?.cancel()
+
             binding.expandIcon.text = ""
             binding.expandIcon.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 0,
@@ -331,6 +326,83 @@ class SessionAdapter(
             )
             binding.expandIcon.contentDescription =
                 if (expanded) "Collapse session details" else "Expand session details"
+
+            val details = binding.detailsContainer
+            val actionsButton = binding.actionsButton
+
+            if (!animate || !binding.root.isAttachedToWindow) {
+                details.visibility = if (expanded) View.VISIBLE else View.GONE
+                details.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
+                details.requestLayout()
+                return
+            }
+
+            if (expanded) {
+                details.visibility = View.VISIBLE
+                actionsButton.visibility = View.VISIBLE
+                details.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+
+                val availableWidth = if (details.width > 0) details.width else binding.root.width
+                details.measure(
+                    View.MeasureSpec.makeMeasureSpec(availableWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                )
+                val targetHeight = details.measuredHeight
+
+                details.layoutParams.height = 0
+                details.requestLayout()
+
+                val animator = ValueAnimator.ofInt(0, targetHeight).apply {
+                    duration = 220
+                    interpolator = AccelerateDecelerateInterpolator()
+                }
+                detailsAnimator = animator
+                animator.addUpdateListener { valueAnimator ->
+                    details.layoutParams.height = valueAnimator.animatedValue as Int
+                    details.requestLayout()
+                }
+                animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        if (detailsAnimator === animator) {
+                            details.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                            details.requestLayout()
+                            detailsAnimator = null
+                        }
+                    }
+                })
+                animator.start()
+            } else {
+                val startHeight = details.height
+                if (startHeight <= 0) {
+                    details.visibility = View.GONE
+                    details.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    actionsButton.visibility = View.GONE
+                    return
+                }
+
+                val animator = ValueAnimator.ofInt(startHeight, 0).apply {
+                    duration = 220
+                    interpolator = AccelerateDecelerateInterpolator()
+                }
+                detailsAnimator = animator
+                animator.addUpdateListener { valueAnimator ->
+                    details.layoutParams.height = valueAnimator.animatedValue as Int
+                    details.requestLayout()
+                }
+                animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        if (detailsAnimator === animator) {
+                            details.visibility = View.GONE
+                            details.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                            actionsButton.visibility = View.GONE
+                            details.requestLayout()
+                            detailsAnimator = null
+                        }
+                    }
+                })
+                animator.start()
+            }
         }
 
         private fun updateStatus(session: HeadphoneSession) {
