@@ -29,7 +29,7 @@ object DiagnosticLogger {
     private val lock = Any()
 
     fun log(context: Context, source: String, event: String, deviceName: String,
-        deviceType: String, details: String = "") {
+        deviceType: String, details: String = "", isReplay: Boolean? = null) {
         synchronized(lock) {
             val appContext = context.applicationContext
             val timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US).format(Date())
@@ -43,6 +43,7 @@ object DiagnosticLogger {
                 put("pid", Process.myPid())
                 put("source", source)
                 put("details", details)
+                if (isReplay != null) put("isReplay", isReplay)
             }
             val preferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val existing = preferences.getString(ENTRIES_KEY, "").orEmpty()

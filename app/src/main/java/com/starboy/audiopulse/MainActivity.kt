@@ -9,9 +9,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.content.Intent
-import android.content.IntentFilter
-import com.starboy.audiopulse.service.HeadphoneReceiver
 import com.starboy.audiopulse.service.DiagnosticLogger
 
 /**
@@ -21,7 +18,6 @@ import com.starboy.audiopulse.service.DiagnosticLogger
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var bottomNav: BottomNavigationView
-    private val headphoneReceiver = HeadphoneReceiver("dynamic_receiver")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,14 +100,6 @@ class MainActivity : AppCompatActivity() {
             deviceType = "APP",
             details = "callback=onStart"
         )
-
-        val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
-        ContextCompat.registerReceiver(
-            this,
-            headphoneReceiver,
-            filter,
-            ContextCompat.RECEIVER_EXPORTED
-        )
     }
 
     override fun onStop() {
@@ -121,14 +109,8 @@ class MainActivity : AppCompatActivity() {
             event = "APP_LIFECYCLE",
             deviceName = "N/A",
             deviceType = "APP",
-            details = "callback=onStop; unregistering dynamic wired receiver"
+            details = "callback=onStop"
         )
-        try {
-            unregisterReceiver(headphoneReceiver)
-        } catch (e: IllegalArgumentException) {
-            e.printStackTrace()
-        }
-
         super.onStop()
     }
 
