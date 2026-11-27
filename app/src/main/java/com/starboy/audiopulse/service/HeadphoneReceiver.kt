@@ -9,66 +9,84 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.starboy.audiopulse.data.AppDatabase
 import com.starboy.audiopulse.data.ConnectionType
-import com.starboy.audiopulse.data.HeadphoneSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * The no-argument constructor is used by the manifest receiver. MainActivity
- * supplies "dynamic_receiver" for its dynamically registered wired receiver.
+ * Manifest receiver for Bluetooth profile connection changes.
+ * Wired events are handled by the application-lifetime WiredConnectionReceiver.
  */
 class HeadphoneReceiver(private val eventSource: String = "manifest_receiver") : BroadcastReceiver() {
-    companion object { private const val TAG = "HeadphoneReceiver" }
+    companion object {
+        private const val TAG = "HeadphoneReceiver"
+    }
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null || intent == null) return
+
         when (intent.action) {
-            Intent.ACTION_HEADSET_PLUG -> {
-                val state = intent.getIntExtra("state", -1)
-                val name = intent.getStringExtra("name") ?: "Wired Headphones"
-                val stateName = when (state) {
-                    0 -> "UNPLUGGED"
-                    1 -> "PLUGGED"
-                    else -> "UNKNOWN($state)"
-                }
-                DiagnosticLogger.log(context, eventSource, "WIRED_CONNECTION_EVENT", name,
-                    ConnectionType.WIRED.name, "action=${intent.action}; state=$stateName; rawState=$state")
-                Log.d(TAG, "Wired state=$stateName device=$name source=$eventSource")
-                when (state) {
-                    0 -> handleHeadphoneDisconnect(context, name, ConnectionType.WIRED, "wired_unplug_event")
-                    1 -> handleHeadphoneConnect(context, name, ConnectionType.WIRED, "wired_plug_event")
-                }
-            }
             BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED -> {
                 val state = intent.getIntExtra(BluetoothA2dp.EXTRA_STATE, -1)
-                val name = getBluetoothDeviceName(getBluetoothDevice(intent), "Bluetooth A2DP Device")
-                val stateName = bluetoothStateName(state)
-                DiagnosticLogger.log(context, eventSource, "BLUETOOTH_CONNECTION_EVENT", name,
-                    "BLUETOOTH_A2DP", "profile=A2DP; action=${intent.action}; state=$stateName; rawState=$state")
-                Log.d(TAG, "Bluetooth A2DP state=$stateName device=$name source=$eventSource")
-                when (state) {
-                    BluetoothProfile.STATE_CONNECTED ->
-                        handleHeadphoneConnect(context, name, ConnectionType.BLUETOOTH, "bluetooth_a2dp_connected")
-                    BluetoothProfile.STATE_DISCONNECTED ->
-                        handleHeadphoneDisconnect(context, name, ConnectionType.BLUETOOTH, "bluetooth_a2dp_disconnected")
-                }
+                handleBluetoothEvent(context, intent, state, "A2DP")
             }
             BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> {
                 val state = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE, -1)
-                val name = getBluetoothDeviceName(getBluetoothDevice(intent), "Bluetooth Headset")
-                val stateName = bluetoothStateName(state)
-                DiagnosticLogger.log(context, eventSource, "BLUETOOTH_CONNECTION_EVENT", name,
-                    "BLUETOOTH_HEADSET", "profile=HEADSET; action=${intent.action}; state=$stateName; rawState=$state")
-                Log.d(TAG, "Bluetooth Headset state=$stateName device=$name source=$eventSource")
-                when (state) {
-                    BluetoothHeadset.STATE_CONNECTED ->
-                        handleHeadphoneConnect(context, name, ConnectionType.BLUETOOTH, "bluetooth_headset_connected")
-                    BluetoothHeadset.STATE_DISCONNECTED ->
-                        handleHeadphoneDisconnect(context, name, ConnectionType.BLUETOOTH, "bluetooth_headset_disconnected")
-                }
+                handleBluetoothEvent(context, intent, state, "HEADSET")
+            }
+        }
+    }
+
+    private fun handleBluetoothEvent(
+        context: Context,
+        intent: Intent,
+        state: Int,
+        profile: String
+    ) {
+        val device = getBluetoothDevice(intent)
+        val deviceName = getBluetoothDeviceName(device, "Bluetooth $profile Device")
+        val deviceAddress = getBluetoothDeviceAddress(device)
+        val stateName = bluetoothStateName(state)
+
+        DiagnosticLogger.log(
+            context, eventSource, "BLUETOOTH_CONNECTION_EVENT", deviceName,
+            "BLUETOOTH_$profile",
+            "profile=$profile; action=${intent.action}; state=$stateName; rawState=$state; deviceAddress=${deviceAddress ?: "unknown"}"
+        )
+        Log.d(TAG, "Bluetooth $profile state=$stateName device=$deviceName address=$deviceAddress")
+
+        val reason = "bluetooth_${profile.lowercase()}_${stateName.lowercase()}"
+        when (state) {
+            BluetoothProfile.STATE_CONNECTED -> launchSessionOperation(context) {
+                DeviceSessionManager.connected(
+                    context, deviceAddress.orEmpty(), deviceName,
+                    ConnectionType.BLUETOOTH, eventSource, reason
+                )
+            }
+            BluetoothProfile.STATE_DISCONNECTED -> launchSessionOperation(context) {
+                DeviceSessionManager.disconnected(
+                    context, deviceAddress.orEmpty(), deviceName,
+                    ConnectionType.BLUETOOTH, eventSource, reason
+                )
+            }
+            else -> Unit
+        }
+    }
+
+    private fun launchSessionOperation(context: Context, operation: suspend () -> Unit) {
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                operation()
+            } catch (e: Exception) {
+                DiagnosticLogger.log(
+                    context, eventSource, "SESSION_EVENT_ERROR", "Unknown Bluetooth Device",
+                    "BLUETOOTH", "error=${e.javaClass.simpleName}:${e.message}"
+                )
+                Log.e(TAG, "Unable to process Bluetooth session event", e)
+            } finally {
+                pendingResult.finish()
             }
         }
     }
@@ -82,10 +100,19 @@ class HeadphoneReceiver(private val eventSource: String = "manifest_receiver") :
         }
 
     private fun getBluetoothDeviceName(device: BluetoothDevice?, fallback: String): String =
-        try { device?.name ?: fallback }
-        catch (e: SecurityException) {
+        try {
+            device?.name ?: fallback
+        } catch (e: SecurityException) {
             Log.e(TAG, "Missing BLUETOOTH_CONNECT permission for device name", e)
-            "Permission Denied Device"
+            fallback
+        }
+
+    private fun getBluetoothDeviceAddress(device: BluetoothDevice?): String? =
+        try {
+            device?.address
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Missing BLUETOOTH_CONNECT permission for device address", e)
+            null
         }
 
     private fun bluetoothStateName(state: Int): String = when (state) {
@@ -94,62 +121,5 @@ class HeadphoneReceiver(private val eventSource: String = "manifest_receiver") :
         BluetoothProfile.STATE_CONNECTED -> "CONNECTED"
         BluetoothProfile.STATE_DISCONNECTING -> "DISCONNECTING"
         else -> "UNKNOWN($state)"
-    }
-
-    private fun handleHeadphoneConnect(context: Context, deviceName: String,
-        connectionType: ConnectionType, reason: String) {
-        val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val sessionDao = AppDatabase.getDatabase(context).sessionDao()
-                val activeSessions = sessionDao.getActiveSessions()
-                if (activeSessions.isNotEmpty()) {
-                    DiagnosticLogger.log(context, eventSource, "SESSION_CREATE_SKIPPED", deviceName,
-                        connectionType.name, "reason=active_session_already_exists; trigger=$reason")
-                    Log.d(TAG, "Active session already exists. Ignoring duplicate connection.")
-                    return@launch
-                }
-                val session = HeadphoneSession(deviceName = deviceName, connectionType = connectionType,
-                    connectedTime = System.currentTimeMillis(), disconnectedTime = null, isActive = true)
-                val sessionId = sessionDao.insertSession(session)
-                DiagnosticLogger.log(context, eventSource, "SESSION_CREATE", deviceName, connectionType.name,
-                    "sessionId=$sessionId; reason=$reason")
-                Log.d(TAG, "Session started: $deviceName ($connectionType)")
-            } catch (e: Exception) {
-                DiagnosticLogger.log(context, eventSource, "SESSION_CREATE_ERROR", deviceName, connectionType.name,
-                    "reason=$reason; error=${e.javaClass.simpleName}:${e.message}")
-                Log.e(TAG, "Error inserting session", e)
-            } finally { pendingResult.finish() }
-        }
-    }
-
-    private fun handleHeadphoneDisconnect(context: Context, deviceName: String,
-        connectionType: ConnectionType, reason: String) {
-        val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val sessionDao = AppDatabase.getDatabase(context).sessionDao()
-                val activeSessions = sessionDao.getActiveSessions()
-                if (activeSessions.isNotEmpty()) {
-                    val lastSession = activeSessions.first()
-                    val updatedSession = lastSession.copy(disconnectedTime = System.currentTimeMillis(), isActive = false)
-                    sessionDao.updateSession(updatedSession)
-                    DiagnosticLogger.log(context, eventSource, "SESSION_UPDATE",
-                        lastSession.deviceName, lastSession.connectionType.name,
-                        "sessionId=${lastSession.id}; isActive=true->false; triggerDevice=$deviceName; triggerType=${connectionType.name}; reason=$reason")
-                    DiagnosticLogger.log(context, eventSource, "SESSION_CLOSE",
-                        lastSession.deviceName, lastSession.connectionType.name,
-                        "sessionId=${lastSession.id}; reason=$reason; triggerDevice=$deviceName; triggerType=${connectionType.name}")
-                    Log.d(TAG, "Session ended: ${lastSession.deviceName}")
-                } else {
-                    DiagnosticLogger.log(context, eventSource, "SESSION_CLOSE_SKIPPED", deviceName,
-                        connectionType.name, "reason=no_active_session; trigger=$reason")
-                }
-            } catch (e: Exception) {
-                DiagnosticLogger.log(context, eventSource, "SESSION_UPDATE_ERROR", deviceName, connectionType.name,
-                    "reason=$reason; error=${e.javaClass.simpleName}:${e.message}")
-                Log.e(TAG, "Error updating session", e)
-            } finally { pendingResult.finish() }
-        }
     }
 }
