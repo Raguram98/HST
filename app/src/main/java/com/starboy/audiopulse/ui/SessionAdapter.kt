@@ -7,6 +7,8 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +17,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.TextView
 import android.widget.PopupWindow
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
@@ -33,7 +36,8 @@ import java.util.Locale
  */
 class SessionAdapter(
     private val onRename: (HeadphoneSession, String) -> Unit,
-    private val onDelete: (HeadphoneSession) -> Unit
+    private val onDelete: (HeadphoneSession) -> Unit,
+    private val isRecyclerIdle: () -> Boolean
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private sealed class Row {
@@ -47,6 +51,7 @@ class SessionAdapter(
     companion object {
         private const val TYPE_DATE = 0
         private const val TYPE_SESSION = 1
+        private const val PAYLOAD_DURATION = "duration"
     }
 
     init {
@@ -59,7 +64,7 @@ class SessionAdapter(
     }
 
     fun submitSessions(sessions: List<HeadphoneSession>) {
-        rows.clear()
+        val newRows = mutableListOf<Row>()
         val today = Calendar.getInstance()
         val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
         var lastDateKey: String? = null
@@ -73,13 +78,37 @@ class SessionAdapter(
                     isSameDay(date, yesterday) -> "Yesterday"
                     else -> SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(session.connectedTime))
                 }
-                rows.add(Row.DateHeader(title, -dateKey.toLong()))
+                newRows.add(Row.DateHeader(title, -dateKey.toLong()))
                 lastDateKey = dateKey
             }
-            rows.add(Row.Session(session))
+            newRows.add(Row.Session(session))
             if (isLiveSession(session)) expandedSessionIds.add(session.id)
         }
-        notifyDataSetChanged()
+
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = rows.size
+            override fun getNewListSize(): Int = newRows.size
+
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                rowId(rows[oldItemPosition]) == rowId(newRows[newItemPosition])
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                rows[oldItemPosition] == newRows[newItemPosition]
+        })
+
+        rows.clear()
+        rows.addAll(newRows)
+        diff.dispatchUpdatesTo(this)
+    }
+
+    private fun rowId(row: Row): Long = when (row) {
+        is Row.DateHeader -> row.stableId
+        is Row.Session -> row.value.id
+    }
+
+    private fun notifyDurationChanged(sessionId: Long) {
+        val position = rows.indexOfFirst { it is Row.Session && it.value.id == sessionId }
+        if (position != -1) notifyItemChanged(position, PAYLOAD_DURATION)
     }
 
     override fun getItemViewType(position: Int): Int =
@@ -123,11 +152,29 @@ class SessionAdapter(
                         expandedSessionIds.remove(row.value.id)
                         false
                     }
-                    (holder as SessionViewHolder).setExpanded(nowExpanded)
+                    (holder as SessionViewHolder).setExpanded(
+                        nowExpanded,
+                        animate = isRecyclerIdle()
+                    )
                 },
                 onActions = { anchor -> showActions(anchor, row.value) }
             )
         }
+    }
+
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.contains(PAYLOAD_DURATION)) {
+            val row = rows[position]
+            if (row is Row.Session && holder is SessionViewHolder) {
+                holder.updateDuration(row.value)
+            }
+            return
+        }
+        super.onBindViewHolder(holder, position, payloads)
     }
 
     private fun showActions(anchor: View, session: HeadphoneSession) {
@@ -266,7 +313,13 @@ class SessionAdapter(
             }
         }
 
-        fun setExpanded(expanded: Boolean) {
+        fun setExpanded(expanded: Boolean, animate: Boolean = false) {
+            if (animate && binding.root.isAttachedToWindow) {
+                TransitionManager.beginDelayedTransition(
+                    binding.root,
+                    AutoTransition().apply { duration = 220 }
+                )
+            }
             binding.detailsContainer.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.actionsButton.visibility = if (expanded) View.VISIBLE else View.GONE
             binding.expandIcon.text = ""
@@ -292,6 +345,10 @@ class SessionAdapter(
                 "${if (live) "Live" else "Ended"}, $connection, ${if (live) "connected" else "lasted"} ${spokenDuration(durationSeconds)}"
         }
 
+        fun updateDuration(session: HeadphoneSession) {
+            updateDurationText(session)
+        }
+
         private fun updateDurationText(session: HeadphoneSession) {
             binding.statusDurationText.text = formatDuration(durationSeconds(session))
         }
@@ -306,7 +363,7 @@ class SessionAdapter(
                         stopUpdates()
                         return
                     }
-                    updateDurationText(session)
+                    notifyDurationChanged(session.id)
                     startLiveAnimationsIfAllowed()
                     timerHandler.postDelayed(this, 1000)
                 }
