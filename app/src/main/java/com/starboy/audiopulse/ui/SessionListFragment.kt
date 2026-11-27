@@ -37,7 +37,6 @@ class SessionListFragment : Fragment() {
     private lateinit var emptyStateTitle: TextView
     private lateinit var emptyStateMessage: TextView
     private lateinit var resultCountText: TextView
-    private lateinit var clearFiltersText: TextView
     private lateinit var emptyClearButton: View
     private lateinit var searchInput: EditText
     private lateinit var subtitleText: TextView
@@ -65,7 +64,6 @@ class SessionListFragment : Fragment() {
         emptyStateTitle = view.findViewById(R.id.empty_state_title)
         emptyStateMessage = view.findViewById(R.id.empty_state_message)
         resultCountText = view.findViewById(R.id.sessions_result_count)
-        clearFiltersText = view.findViewById(R.id.clear_filters_text)
         emptyClearButton = view.findViewById(R.id.empty_clear_filters)
         searchInput = view.findViewById(R.id.session_search_input)
         subtitleText = view.findViewById(R.id.library_subtitle)
@@ -91,7 +89,6 @@ class SessionListFragment : Fragment() {
         }
 
         setupFilterChips()
-        clearFiltersText.setOnClickListener { clearFilters() }
         emptyClearButton.setOnClickListener { clearFilters() }
 
         searchInput.addTextChangedListener(object : TextWatcher {
@@ -211,7 +208,6 @@ class SessionListFragment : Fragment() {
         val filtersActive = query.isNotEmpty() ||
             selectedConnectionType != null || selectedTimeFilter != 0
         resultCountText.text = "${filteredSessions.size} ${if (filteredSessions.size == 1) "session" else "sessions"}"
-        clearFiltersText.visibility = if (filtersActive) View.VISIBLE else View.GONE
 
         val showEmpty = filteredSessions.isEmpty()
         emptyStateView.visibility = if (showEmpty) View.VISIBLE else View.GONE
@@ -220,14 +216,27 @@ class SessionListFragment : Fragment() {
 
         if (currentSessions.isEmpty() && !filtersActive) {
             emptyStateIcon.visibility = View.VISIBLE
+            emptyStateIcon.setImageResource(R.drawable.ic_headphones)
+            emptyStateIcon.contentDescription = "Headphones"
+            viewNotFoundLabelVisibility(false)
+            emptyStateTitle.visibility = View.VISIBLE
             emptyStateTitle.text = "Nothing playing yet"
             emptyStateMessage.text =
                 "Connect your headphones and your listening sessions will show up here."
         } else if (showEmpty) {
-            emptyStateIcon.visibility = View.GONE
+            emptyStateIcon.visibility = View.VISIBLE
+            emptyStateIcon.setImageResource(R.drawable.ic_not_found)
+            emptyStateIcon.contentDescription = "Not Found"
+            viewNotFoundLabelVisibility(true)
+            emptyStateTitle.visibility = View.VISIBLE
             emptyStateTitle.text = "No sessions match these filters"
             emptyStateMessage.text = ""
         }
+    }
+
+    private fun viewNotFoundLabelVisibility(visible: Boolean) {
+        view?.findViewById<TextView>(R.id.empty_state_label)?.visibility =
+            if (visible) View.VISIBLE else View.GONE
     }
 
     private fun getTimeFilterStartTime(): Long? {

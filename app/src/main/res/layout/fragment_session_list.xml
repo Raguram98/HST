@@ -165,17 +165,6 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp" />
 
-            <TextView
-                android:id="@+id/clear_filters_text"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginStart="10dp"
-                android:gravity="center_vertical"
-                android:text="· Clear filters"
-                android:textColor="@color/md_theme_primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
@@ -214,6 +203,17 @@
                 android:padding="21dp"
                 android:src="@drawable/ic_headphones"
                 app:tint="@color/md_theme_primary" />
+
+            <TextView
+                android:id="@+id/empty_state_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Not Found"
+                android:textColor="@color/md_theme_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/empty_state_title"
